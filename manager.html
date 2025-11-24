@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Sổ tay từ vựng Gemini</title>
+  <link rel="stylesheet" href="manager.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>🇯🇵 Sổ tay học tập</h1>
+      <div class="tabs">
+        <button id="btn-vocab" class="tab-btn active">Từ vựng đã lưu</button>
+        <button id="btn-grammar" class="tab-btn">Ngữ pháp đã lưu</button>
+        <button id="btn-settings" class="tab-btn"> Cài đặt API</button>
+      </div>
+    </header>
+
+    <div class="action-bar" id="action-bar" style="display: none;">
+      <div class="select-all-wrapper">
+        <input type="checkbox" id="select-all-checkbox">
+        <label for="select-all-checkbox">Chọn tất cả</label>
+      </div>
+
+      <div class="action-buttons">
+        <button id="btn-delete-multi" class="btn-danger" disabled>
+          Xóa đã chọn (<span id="selected-count">0</span>)
+        </button>
+
+        <button id="btn-export" class="btn-success">
+          Xuất Excel/CSV
+        </button>
+      </div>
+    </div>
+    <main id="content-area">
+    </main>
+  </div>
+  <script src="manager.js"></script>
+</body>
+
+</html>
