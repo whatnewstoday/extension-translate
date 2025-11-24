@@ -53,7 +53,7 @@ async function handleGeminiRequest(type, text, tabId) {
     return;
   }
 
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   let prompt = "";
 
@@ -99,6 +99,7 @@ async function handleGeminiRequest(type, text, tabId) {
     const jsonData = JSON.parse(cleanJson);
 
     // Gửi kết quả về Frontend
+    // Đảm bảo tabId hợp lệ
     if (tabId) {
       chrome.tabs.sendMessage(tabId, {
         action: "displayResult",

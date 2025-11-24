@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2 class="settings-title">⚙️ Cài đặt API</h2>
           
           <div class="settings-card">
-            <h3 class="settings-card-title"> Gemini API Key</h3>
+            <h3 class="settings-card-title">🔑 Gemini API Key</h3>
             <p class="settings-card-text">
               API key hiện tại: <code class="api-key-display">${maskedKey}</code>
             </p>
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           
           <div class="security-note">
-            <h4 class="security-title"> Lưu ý bảo mật:</h4>
+            <h4 class="security-title">⚠️ Lưu ý bảo mật:</h4>
             <ul class="security-list">
               <li>API key được lưu an toàn trong bộ nhớ local của trình duyệt</li>
               <li>Không bao giờ chia sẻ API key với người khác</li>
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           try {
             const response = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${keyToTest}`,
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keyToTest}`,
               {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
