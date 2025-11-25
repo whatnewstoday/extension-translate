@@ -157,15 +157,14 @@ if (!popup) {
     `;
   document.body.appendChild(popup);
 
-  // --- SỰ KIỆN NÚT SỔ TAY (MỚI) ---
+  // --- SỰ KIỆN NÚT SỔ TAY ---
   // Cần stopPropagation để tránh kích hoạt sự kiện kéo thả (Drag) của header
   const managerBtn = popup.querySelector('#open-manager-btn');
   managerBtn.addEventListener('mousedown', (e) => e.stopPropagation());
   managerBtn.onclick = (e) => {
     e.stopPropagation(); // Ngăn kéo thả
     chrome.runtime.sendMessage({ action: "openOptionsPage" });
-    // Tùy chọn: Đóng popup sau khi mở trang quản lý
-    popup.classList.remove('active');
+    // Popup vẫn giữ nguyên khi mở trang quản lý (không đóng)
   };
 }
 
@@ -216,13 +215,13 @@ document.addEventListener('mouseup', () => {
   isDragging = false;
 });
 
-// --- C. CLICK RA NGOÀI ĐỂ ĐÓNG ---
-document.addEventListener('mousedown', (e) => {
-  // Chỉ đóng nếu popup đang mở VÀ click không nằm trong popup
-  if (popup.classList.contains('active') && !popup.contains(e.target)) {
-    popup.classList.remove('active');
-  }
-});
+// --- C. CLICK RA NGOÀI ĐỂ ĐÓNG (ĐÃ VÔ HIỆU HÓA) ---
+// Popup chỉ đóng khi nhấn nút X, không đóng khi click ra ngoài
+// document.addEventListener('mousedown', (e) => {
+//   if (popup.classList.contains('active') && !popup.contains(e.target)) {
+//     popup.classList.remove('active');
+//   }
+// });
 
 // ==========================================
 // 4. LẮNG NGHE TIN NHẮN TỪ BACKGROUND
@@ -395,12 +394,12 @@ function saveGrammar(gramObj, btnElement) {
       alert("Ngữ pháp này đã lưu rồi!");
     }
   });
+}
 
-  // --- Hàm đổi trạng thái nút sau khi lưu ---
-  function updateBtnStatus(btn) {
-    btn.innerHTML = "✅";
-    btn.style.borderColor = "#4CAF50";
-    btn.style.color = "#4CAF50";
-    btn.disabled = true;
-  }
+// --- Hàm đổi trạng thái nút sau khi lưu ---
+function updateBtnStatus(btn) {
+  btn.innerHTML = "✅";
+  btn.style.borderColor = "#4CAF50";
+  btn.style.color = "#4CAF50";
+  btn.disabled = true;
 }

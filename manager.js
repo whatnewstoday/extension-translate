@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchTab(type) {
     currentTab = type;
-
+    //chả có gì cả
     // Remove active from all tabs
     [btnVocab, btnGrammar, btnSettings].forEach(btn => {
       if (btn) btn.classList.remove('active');
@@ -126,14 +126,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
 
         card.innerHTML = `
-                    <input type="checkbox" class="item-checkbox" value="${idValue}">
-                    <div class="card-content">
-                        <h3>${title} <span class="card-reading">${subtitle}</span></h3>
-                        <p>${content}</p>
-                        <small style="color:#ccc; font-size:11px;">${dateStr}</small>
-                    </div>
-                    <button class="delete-btn" style="background:#ffebee; color:#d32f2f; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Xóa</button>
-                `;
+          <input type="checkbox" class="item-checkbox" value="${idValue}">
+          <div class="card-content">
+              <h3>${title}   
+                  <span class="btn-speak" title="Nghe phát âm" style="cursor:pointer; margin-left:8px; font-size:18px;">
+                    🔊
+                  </span>
+                  <span class="card-reading">${subtitle}</span>
+              </h3>
+              <p>${content}</p>
+              <small style="color:#ccc; font-size:11px;">${dateStr}</small>
+          </div>
+          <button class="delete-btn" style="background:#ffebee; color:#d32f2f; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Xóa</button>`;
+
+        // [MỚI] GẮN SỰ KIỆN CLICK CHO LOA
+        // Chúng ta cần stopPropagation để tránh kích hoạt các sự kiện click khác nếu có
+        card.querySelector('.btn-speak').onclick = (e) => {
+          e.stopPropagation(); // Ngăn sự kiện nổi bọt
+          speakJapanese(title); // Đọc từ vựng (hoặc cấu trúc)
+        };
 
         // Logic Checkbox
         const checkbox = card.querySelector('.item-checkbox');
@@ -339,5 +350,22 @@ document.addEventListener('DOMContentLoaded', () => {
         statusDiv.textContent = message;
       }
     });
+  }
+  // [MỚI] HÀM PHÁT ÂM (TEXT TO SPEECH)
+  function speakJapanese(text) {
+    // Hủy các lệnh đọc đang chờ (nếu người dùng bấm liên tục)
+    window.speechSynthesis.cancel();
+    //utterance = lời nói
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP'; // Thiết lập ngôn ngữ Nhật
+    utterance.rate = 0.9;     // Tốc độ đọc (0.1 - 10), 0.9 là vừa phải
+    utterance.volume = 1;     // Âm lượng (0 - 1)
+
+    // Tìm giọng đọc Google Japanese (nếu có) để nghe tự nhiên hơn
+    const voices = window.speechSynthesis.getVoices();
+    const jpVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.name.includes('Japanese'));
+    if (jpVoice) utterance.voice = jpVoice;
+
+    window.speechSynthesis.speak(utterance);
   }
 });
