@@ -1,232 +1,287 @@
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("=== MANAGER SCRIPT (SAFE MODE) ===");
+  console.log("=== MANAGER SCRIPT (2 COLUMNS MODE) ===");
 
   // Elements
-  const btnVocab = document.getElementById('btn-vocab');
-  const btnGrammar = document.getElementById('btn-grammar');
   const btnSettings = document.getElementById('btn-settings');
-  const contentArea = document.getElementById('content-area');
+  const mainView = document.getElementById('main-view');
+  const settingsView = document.getElementById('settings-view');
 
-  // Bulk Action Elements
-  const actionBar = document.getElementById('action-bar');
-  const selectAllCheckbox = document.getElementById('select-all-checkbox');
-  const btnDeleteMulti = document.getElementById('btn-delete-multi');
-  const selectedCountSpan = document.getElementById('selected-count');
+  // Vocab elements
+  const vocabContent = document.getElementById('vocab-content');
+  const selectAllVocab = document.getElementById('select-all-vocab');
+  const btnDeleteVocab = document.getElementById('btn-delete-vocab');
+  const vocabCountSpan = document.getElementById('vocab-count');
 
-  // State Tracking
-  let currentTab = 'vocab';
+  // Grammar elements
+  const grammarContent = document.getElementById('grammar-content');
+  const selectAllGrammar = document.getElementById('select-all-grammar');
+  const btnDeleteGrammar = document.getElementById('btn-delete-grammar');
+  const grammarCountSpan = document.getElementById('grammar-count');
 
-  // Init
-  loadData();
+  // State
+  let currentView = 'main'; // 'main' or 'settings'
 
-  // --- SỰ KIỆN CHUYỂN TAB ---
-  if (btnVocab) btnVocab.onclick = () => switchTab('vocab');
-  if (btnGrammar) btnGrammar.onclick = () => switchTab('grammar');
-  if (btnSettings) btnSettings.onclick = () => switchTab('settings');
+  // Init - Load cả 2 loại data
+  loadBothData();
 
-  function switchTab(type) {
-    currentTab = type;
-    //chả có gì cả
-    // Remove active from all tabs
-    [btnVocab, btnGrammar, btnSettings].forEach(btn => {
-      if (btn) btn.classList.remove('active');
-    });
-
-    // Set active tab
-    if (type === 'vocab' && btnVocab) btnVocab.classList.add('active');
-    if (type === 'grammar' && btnGrammar) btnGrammar.classList.add('active');
-    if (type === 'settings' && btnSettings) btnSettings.classList.add('active');
-
-    // Reset checkbox an toàn
-    if (selectAllCheckbox) selectAllCheckbox.checked = false;
-    updateBulkDeleteButton();
-
-    if (type === 'settings') {
-      renderSettings();
-    } else {
-      loadData();
-    }
-  }
-
-  // --- SỰ KIỆN CHỌN TẤT CẢ ---
-  if (selectAllCheckbox) {
-    selectAllCheckbox.onclick = () => {
-      const checkboxes = document.querySelectorAll('.item-checkbox');
-      checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
-      updateBulkDeleteButton();
-    };
-  }
-
-  // --- SỰ KIỆN XÓA NHIỀU ---
-  if (btnDeleteMulti) {
-    btnDeleteMulti.onclick = () => {
-      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-      if (checkboxes.length === 0) return;
-
-      if (confirm(`Bạn có chắc muốn xóa ${checkboxes.length} mục đã chọn không?`)) {
-        const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
-        deleteBulkItems(idsToDelete);
+  // === SỰ KIỆN NÚT SETTINGS ===
+  if (btnSettings) {
+    btnSettings.onclick = () => {
+      if (currentView === 'main') {
+        showSettings();
+      } else {
+        showMainView();
       }
     };
   }
 
-  // --- HÀM LOAD DỮ LIỆU ---
-  function loadData() {
-    const storageKey = currentTab === 'vocab' ? 'savedVocab' : 'savedGrammar';
+  function showSettings() {
+    currentView = 'settings';
+    mainView.style.display = 'none';
+    settingsView.style.display = 'block';
+    btnSettings.classList.add('active');
+    btnSettings.textContent = '← Quay lại';
+    renderSettings();
+  }
 
-    console.log(`Đang tải dữ liệu tab: ${currentTab}`);
+  function showMainView() {
+    currentView = 'main';
+    mainView.style.display = 'grid';
+    settingsView.style.display = 'none';
+    btnSettings.classList.remove('active');
+    btnSettings.textContent = '⚙️ Cài đặt API';
+  }
 
-    chrome.storage.local.get([storageKey], (result) => {
-      const list = result[storageKey] || [];
-      console.log("Số lượng tìm thấy:", list.length);
-      renderList(list);
+  // === LOAD DATA ===
+  function loadBothData() {
+    loadVocabData();
+    loadGrammarData();
+  }
+
+  function loadVocabData() {
+    chrome.storage.local.get(['savedVocab'], (result) => {
+      const list = result.savedVocab || [];
+      console.log("Từ vựng:", list.length);
+      renderVocabList(list);
     });
   }
 
-  // --- HÀM RENDER UI ---
-  function renderList(list) {
-    if (!contentArea) return;
-    contentArea.innerHTML = '';
+  function loadGrammarData() {
+    chrome.storage.local.get(['savedGrammar'], (result) => {
+      const list = result.savedGrammar || [];
+      console.log("Ngữ pháp:", list.length);
+      renderGrammarList(list);
+    });
+  }
 
-    // Xử lý hiển thị/ẩn thanh Action Bar
+  // === RENDER VOCAB ===
+  function renderVocabList(list) {
+    if (!vocabContent) return;
+    vocabContent.innerHTML = '';
+
     if (list.length === 0) {
-      if (actionBar) actionBar.style.display = 'none';
-
-      contentArea.innerHTML = `
-                <div style="text-align:center; margin-top:50px; color:#888;">
-                    <p>Chưa có dữ liệu nào.</p>
-                </div>`;
+      vocabContent.innerHTML = '<div class="empty-state">Chưa có từ vựng nào.</div>';
       return;
     }
 
-    // Hiện thanh công cụ nếu nó tồn tại
-    if (actionBar) actionBar.style.display = 'flex';
-
-    // Render Cards
     [...list].reverse().forEach((item) => {
-      try {
-        const card = document.createElement('div');
-        card.className = `card ${currentTab === 'grammar' ? 'grammar' : ''}`;
+      const card = document.createElement('div');
+      card.className = 'card';
 
-        let title, subtitle, content, idValue;
+      const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
 
-        // Fallback dữ liệu nếu bị thiếu trường
-        if (currentTab === 'vocab') {
-          title = item.word || '(Lỗi dữ liệu)';
-          subtitle = item.reading ? `(${item.reading})` : '';
-          content = item.mean || '';
-          idValue = item.word;
-        } else {
-          title = item.structure || '(Lỗi dữ liệu)';
-          subtitle = '';
-          content = item.explain || '';
-          idValue = item.structure;
+      card.innerHTML = `
+        <input type="checkbox" class="vocab-checkbox" value="${item.word}">
+        <div class="card-content">
+          <h3>
+            ${item.word}
+            <span class="btn-speak" title="Nghe phát âm">🔊</span>
+            <span class="card-reading">(${item.reading})</span>
+          </h3>
+          <p>${item.mean}</p>
+          <small style="color:#999; font-size:11px;">${dateStr}</small>
+        </div>
+        <button class="delete-btn">Xóa</button>
+      `;
+
+      // Sự kiện loa
+      card.querySelector('.btn-speak').onclick = (e) => {
+        e.stopPropagation();
+        speakJapanese(item.word);
+      };
+
+      // Sự kiện checkbox
+      const checkbox = card.querySelector('.vocab-checkbox');
+      checkbox.onchange = () => updateVocabDeleteButton();
+
+      // Sự kiện xóa
+      card.querySelector('.delete-btn').onclick = () => {
+        if (confirm(`Xóa từ: "${item.word}"?`)) {
+          deleteVocabItems([item.word]);
         }
+      };
 
-        const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
-
-        card.innerHTML = `
-          <input type="checkbox" class="item-checkbox" value="${idValue}">
-          <div class="card-content">
-              <h3>${title}   
-                  <span class="btn-speak" title="Nghe phát âm" style="cursor:pointer; margin-left:8px; font-size:18px;">
-                    🔊
-                  </span>
-                  <span class="card-reading">${subtitle}</span>
-              </h3>
-              <p>${content}</p>
-              <small style="color:#ccc; font-size:11px;">${dateStr}</small>
-          </div>
-          <button class="delete-btn" style="background:#ffebee; color:#d32f2f; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Xóa</button>`;
-
-        // [MỚI] GẮN SỰ KIỆN CLICK CHO LOA
-        // Chúng ta cần stopPropagation để tránh kích hoạt các sự kiện click khác nếu có
-        card.querySelector('.btn-speak').onclick = (e) => {
-          e.stopPropagation(); // Ngăn sự kiện nổi bọt
-          speakJapanese(title); // Đọc từ vựng (hoặc cấu trúc)
-        };
-
-        // Logic Checkbox
-        const checkbox = card.querySelector('.item-checkbox');
-        checkbox.onchange = () => {
-          updateBulkDeleteButton();
-          if (!checkbox.checked && selectAllCheckbox) selectAllCheckbox.checked = false;
-        };
-
-        // Logic Xóa Lẻ
-        card.querySelector('.delete-btn').onclick = () => {
-          if (confirm(`Xóa mục: "${title}"?`)) {
-            deleteBulkItems([idValue]);
-          }
-        };
-
-        contentArea.appendChild(card);
-        updateBulkDeleteButton();
-      } catch (err) {
-        console.error("Lỗi khi render 1 thẻ:", err);
-      }
+      vocabContent.appendChild(card);
     });
+
+    updateVocabDeleteButton();
   }
 
-  // --- HÀM CẬP NHẬT TRẠNG THÁI NÚT XÓA NHIỀU ---
-  function updateBulkDeleteButton() {
-    if (!selectedCountSpan || !btnDeleteMulti) return;
+  // === RENDER GRAMMAR ===
+  function renderGrammarList(list) {
+    if (!grammarContent) return;
+    grammarContent.innerHTML = '';
 
-    const count = document.querySelectorAll('.item-checkbox:checked').length;
-    selectedCountSpan.textContent = count;
-
-    if (count > 0) {
-      btnDeleteMulti.disabled = false;
-      btnDeleteMulti.style.opacity = '1';
-    } else {
-      btnDeleteMulti.disabled = true;
-      btnDeleteMulti.style.opacity = '0.6';
+    if (list.length === 0) {
+      grammarContent.innerHTML = '<div class="empty-state">Chưa có ngữ pháp nào.</div>';
+      return;
     }
+
+    [...list].reverse().forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'card grammar';
+
+      const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
+
+      card.innerHTML = `
+        <input type="checkbox" class="grammar-checkbox" value="${item.structure}">
+        <div class="card-content">
+          <h3>${item.structure}</h3>
+          <p>${item.explain}</p>
+          <small style="color:#999; font-size:11px;">${dateStr}</small>
+        </div>
+        <button class="delete-btn">Xóa</button>
+      `;
+
+      // Sự kiện checkbox
+      const checkbox = card.querySelector('.grammar-checkbox');
+      checkbox.onchange = () => updateGrammarDeleteButton();
+
+      // Sự kiện xóa
+      card.querySelector('.delete-btn').onclick = () => {
+        if (confirm(`Xóa ngữ pháp: "${item.structure}"?`)) {
+          deleteGrammarItems([item.structure]);
+        }
+      };
+
+      grammarContent.appendChild(card);
+    });
+
+    updateGrammarDeleteButton();
   }
 
-  // --- HÀM XÓA (XỬ LÝ CẢ LẺ VÀ NHIỀU) ---
-  function deleteBulkItems(idsToDelete) {
-    const storageKey = currentTab === 'vocab' ? 'savedVocab' : 'savedGrammar';
-    const idKey = currentTab === 'vocab' ? 'word' : 'structure';
+  // === VOCAB: SELECT ALL ===
+  if (selectAllVocab) {
+    selectAllVocab.onchange = () => {
+      const checkboxes = document.querySelectorAll('.vocab-checkbox');
+      checkboxes.forEach(cb => cb.checked = selectAllVocab.checked);
+      updateVocabDeleteButton();
+    };
+  }
 
-    chrome.storage.local.get([storageKey], (result) => {
-      let list = result[storageKey] || [];
+  // === GRAMMAR: SELECT ALL ===
+  if (selectAllGrammar) {
+    selectAllGrammar.onchange = () => {
+      const checkboxes = document.querySelectorAll('.grammar-checkbox');
+      checkboxes.forEach(cb => cb.checked = selectAllGrammar.checked);
+      updateGrammarDeleteButton();
+    };
+  }
 
-      // Lọc: Giữ lại những item KHÔNG nằm trong danh sách cần xóa
-      const newList = list.filter(item => !idsToDelete.includes(item[idKey]));
+  // === VOCAB: DELETE BUTTON ===
+  if (btnDeleteVocab) {
+    btnDeleteVocab.onclick = () => {
+      const checkboxes = document.querySelectorAll('.vocab-checkbox:checked');
+      if (checkboxes.length === 0) return;
 
-      chrome.storage.local.set({ [storageKey]: newList }, () => {
-        console.log(`Đã xóa ${idsToDelete.length} mục.`);
+      if (confirm(`Xóa ${checkboxes.length} từ vựng đã chọn?`)) {
+        const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
+        deleteVocabItems(idsToDelete);
+      }
+    };
+  }
 
-        // Reset UI thủ công
-        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+  // === GRAMMAR: DELETE BUTTON ===
+  if (btnDeleteGrammar) {
+    btnDeleteGrammar.onclick = () => {
+      const checkboxes = document.querySelectorAll('.grammar-checkbox:checked');
+      if (checkboxes.length === 0) return;
 
-        if (btnDeleteMulti) {
-          btnDeleteMulti.disabled = true;
-          btnDeleteMulti.style.opacity = '0.6';
-        }
-        if (selectedCountSpan) {
-          selectedCountSpan.textContent = '0';
-        }
+      if (confirm(`Xóa ${checkboxes.length} ngữ pháp đã chọn?`)) {
+        const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
+        deleteGrammarItems(idsToDelete);
+      }
+    };
+  }
 
-        loadData();
+  // === UPDATE BUTTONS ===
+  function updateVocabDeleteButton() {
+    if (!vocabCountSpan || !btnDeleteVocab) return;
+
+    const count = document.querySelectorAll('.vocab-checkbox:checked').length;
+    vocabCountSpan.textContent = count;
+    btnDeleteVocab.disabled = count === 0;
+  }
+
+  function updateGrammarDeleteButton() {
+    if (!grammarCountSpan || !btnDeleteGrammar) return;
+
+    const count = document.querySelectorAll('.grammar-checkbox:checked').length;
+    grammarCountSpan.textContent = count;
+    btnDeleteGrammar.disabled = count === 0;
+  }
+
+  // === DELETE FUNCTIONS ===
+  function deleteVocabItems(idsToDelete) {
+    chrome.storage.local.get(['savedVocab'], (result) => {
+      let list = result.savedVocab || [];
+      const newList = list.filter(item => !idsToDelete.includes(item.word));
+
+      chrome.storage.local.set({ savedVocab: newList }, () => {
+        console.log(`Đã xóa ${idsToDelete.length} từ vựng`);
+        if (selectAllVocab) selectAllVocab.checked = false;
+        loadVocabData();
       });
     });
   }
 
-  // --- HÀM RENDER SETTINGS TAB ---
+  function deleteGrammarItems(idsToDelete) {
+    chrome.storage.local.get(['savedGrammar'], (result) => {
+      let list = result.savedGrammar || [];
+      const newList = list.filter(item => !idsToDelete.includes(item.structure));
+
+      chrome.storage.local.set({ savedGrammar: newList }, () => {
+        console.log(`Đã xóa ${idsToDelete.length} ngữ pháp`);
+        if (selectAllGrammar) selectAllGrammar.checked = false;
+        loadGrammarData();
+      });
+    });
+  }
+
+  // === TEXT TO SPEECH ===
+  function speakJapanese(text) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ja-JP';
+    utterance.rate = 0.9;
+    utterance.volume = 1;
+
+    const voices = window.speechSynthesis.getVoices();
+    const jpVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.name.includes('Japanese'));
+    if (jpVoice) utterance.voice = jpVoice;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  // === RENDER SETTINGS ===
   function renderSettings() {
-    if (!contentArea) return;
+    if (!settingsView) return;
 
-    // Ẩn action bar khi ở settings
-    if (actionBar) actionBar.style.display = 'none';
-
-    // Lấy API key hiện tại (nếu có)
     chrome.storage.local.get(['geminiApiKey'], (result) => {
       const currentKey = result.geminiApiKey || '';
       const maskedKey = currentKey ? currentKey.substring(0, 10) + '...' + currentKey.substring(currentKey.length - 4) : 'Chưa thiết lập';
 
-      contentArea.innerHTML = `
+      settingsView.innerHTML = `
         <div class="settings-container">
           <h2 class="settings-title">⚙️ Cài đặt API</h2>
           
@@ -248,10 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             <div class="button-group">
               <button id="save-api-btn" class="btn-save">
-                 Lưu API Key
+                💾 Lưu API Key
               </button>
               <button id="test-api-btn" class="btn-test">
-                 Test API
+                🧪 Test API
               </button>
             </div>
             
@@ -279,20 +334,18 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.onclick = () => {
           const newKey = apiInput.value.trim();
           if (!newKey) {
-            showStatus(' Vui lòng nhập API key', 'error');
+            showStatus('⚠️ Vui lòng nhập API key', 'error');
             return;
           }
 
           if (!newKey.startsWith('AIza')) {
-            showStatus(' API key không hợp lệ (phải bắt đầu bằng AIza)', 'warning');
+            showStatus('⚠️ API key không hợp lệ (phải bắt đầu bằng AIza)', 'warning');
             return;
           }
 
           chrome.storage.local.set({ geminiApiKey: newKey }, () => {
-            showStatus(' Đã lưu API key thành công!', 'success');
+            showStatus('✅ Đã lưu API key thành công!', 'success');
             apiInput.value = '';
-
-            // Reload lại UI sau 1.5s
             setTimeout(() => renderSettings(), 1500);
           });
         };
@@ -302,11 +355,11 @@ document.addEventListener('DOMContentLoaded', () => {
         testBtn.onclick = async () => {
           const keyToTest = apiInput.value.trim() || currentKey;
           if (!keyToTest) {
-            showStatus(' Không có API key để test', 'error');
+            showStatus('⚠️ Không có API key để test', 'error');
             return;
           }
 
-          showStatus(' Đang test API...', 'info');
+          showStatus('🔄 Đang test API...', 'info');
 
           try {
             const response = await fetch(
@@ -321,13 +374,13 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             if (response.ok) {
-              showStatus(' API key hoạt động tốt!', 'success');
+              showStatus('✅ API key hoạt động tốt!', 'success');
             } else {
               const error = await response.json();
-              showStatus(` API key không hợp lệ: ${error.error?.message || 'Unknown error'}`, 'error');
+              showStatus(`❌ API key không hợp lệ: ${error.error?.message || 'Unknown error'}`, 'error');
             }
           } catch (err) {
-            showStatus(` Lỗi kết nối: ${err.message}`, 'error');
+            showStatus(`❌ Lỗi kết nối: ${err.message}`, 'error');
           }
         };
       }
@@ -350,22 +403,5 @@ document.addEventListener('DOMContentLoaded', () => {
         statusDiv.textContent = message;
       }
     });
-  }
-  // [MỚI] HÀM PHÁT ÂM (TEXT TO SPEECH)
-  function speakJapanese(text) {
-    // Hủy các lệnh đọc đang chờ (nếu người dùng bấm liên tục)
-    window.speechSynthesis.cancel();
-    //utterance = lời nói
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ja-JP'; // Thiết lập ngôn ngữ Nhật
-    utterance.rate = 0.9;     // Tốc độ đọc (0.1 - 10), 0.9 là vừa phải
-    utterance.volume = 1;     // Âm lượng (0 - 1)
-
-    // Tìm giọng đọc Google Japanese (nếu có) để nghe tự nhiên hơn
-    const voices = window.speechSynthesis.getVoices();
-    const jpVoice = voices.find(voice => voice.lang === 'ja-JP' || voice.name.includes('Japanese'));
-    if (jpVoice) utterance.voice = jpVoice;
-
-    window.speechSynthesis.speak(utterance);
   }
 });

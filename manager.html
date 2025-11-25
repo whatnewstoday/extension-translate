@@ -12,30 +12,51 @@
     <header>
       <h1>🇯🇵 Sổ tay học tập</h1>
       <div class="tabs">
-        <button id="btn-vocab" class="tab-btn active">Từ vựng đã lưu</button>
-        <button id="btn-grammar" class="tab-btn">Ngữ pháp đã lưu</button>
-        <button id="btn-settings" class="tab-btn"> Cài đặt API</button>
+        <button id="btn-settings" class="tab-btn">⚙️ Cài đặt API</button>
       </div>
     </header>
 
-    <div class="action-bar" id="action-bar" style="display: none;">
-      <div class="select-all-wrapper">
-        <input type="checkbox" id="select-all-checkbox">
-        <label for="select-all-checkbox">Chọn tất cả</label>
+    <!-- View chính với 2 cột -->
+    <div id="main-view">
+      <!-- Cột Từ Vựng -->
+      <div class="column vocab-column">
+        <div class="column-header">
+          <h2>📚 Từ vựng đã lưu</h2>
+          <div class="action-controls">
+            <label class="select-all-label">
+              <input type="checkbox" id="select-all-vocab">
+              <span>Chọn tất cả</span>
+            </label>
+            <button id="btn-delete-vocab" class="btn-danger-small" disabled>
+              Xóa (<span id="vocab-count">0</span>)
+            </button>
+          </div>
+        </div>
+        <div id="vocab-content" class="content-list"></div>
       </div>
 
-      <div class="action-buttons">
-        <button id="btn-delete-multi" class="btn-danger" disabled>
-          Xóa đã chọn (<span id="selected-count">0</span>)
-        </button>
-
-        <button id="btn-export" class="btn-success">
-          Xuất Excel/CSV
-        </button>
+      <!-- Cột Ngữ Pháp -->
+      <div class="column grammar-column">
+        <div class="column-header">
+          <h2>📝 Ngữ pháp đã lưu</h2>
+          <div class="action-controls">
+            <label class="select-all-label">
+              <input type="checkbox" id="select-all-grammar">
+              <span>Chọn tất cả</span>
+            </label>
+            <button id="btn-delete-grammar" class="btn-danger-small" disabled>
+              Xóa (<span id="grammar-count">0</span>)
+            </button>
+          </div>
+        </div>
+        <div id="grammar-content" class="content-list"></div>
       </div>
     </div>
-    <main id="content-area">
-    </main>
+
+    <!-- View Settings (ẩn mặc định) -->
+    <div id="settings-view" style="display: none;">
+      <!-- Nội dung settings sẽ được render bởi JS -->
+    </div>
   </div>
   <script src="manager.js"></script>
 </body>
