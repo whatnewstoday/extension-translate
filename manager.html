@@ -16,21 +16,23 @@
       </div>
     </header>
 
+    <!-- Action Bar chung -->
+    <div id="action-bar" class="action-bar-global">
+      <div class="select-all-wrapper">
+        <input type="checkbox" id="select-all-checkbox">
+        <label for="select-all-checkbox">Chọn tất cả</label>
+      </div>
+      <button id="btn-delete-selected" class="btn-danger" disabled>
+        Xóa đã chọn (<span id="selected-count">0</span>)
+      </button>
+    </div>
+
     <!-- View chính với 2 cột -->
     <div id="main-view">
       <!-- Cột Từ Vựng -->
       <div class="column vocab-column">
         <div class="column-header">
           <h2>📚 Từ vựng đã lưu</h2>
-          <div class="action-controls">
-            <label class="select-all-label">
-              <input type="checkbox" id="select-all-vocab">
-              <span>Chọn tất cả</span>
-            </label>
-            <button id="btn-delete-vocab" class="btn-danger-small" disabled>
-              Xóa (<span id="vocab-count">0</span>)
-            </button>
-          </div>
         </div>
         <div id="vocab-content" class="content-list"></div>
       </div>
@@ -39,15 +41,6 @@
       <div class="column grammar-column">
         <div class="column-header">
           <h2>📝 Ngữ pháp đã lưu</h2>
-          <div class="action-controls">
-            <label class="select-all-label">
-              <input type="checkbox" id="select-all-grammar">
-              <span>Chọn tất cả</span>
-            </label>
-            <button id="btn-delete-grammar" class="btn-danger-small" disabled>
-              Xóa (<span id="grammar-count">0</span>)
-            </button>
-          </div>
         </div>
         <div id="grammar-content" class="content-list"></div>
       </div>

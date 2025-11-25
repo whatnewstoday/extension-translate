@@ -1,22 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("=== MANAGER SCRIPT (2 COLUMNS MODE) ===");
+  console.log("=== MANAGER SCRIPT (2 COLUMNS MODE - GROUP BY DATE) ===");
 
   // Elements
   const btnSettings = document.getElementById('btn-settings');
   const mainView = document.getElementById('main-view');
   const settingsView = document.getElementById('settings-view');
+  const actionBar = document.getElementById('action-bar');
 
-  // Vocab elements
+  // Vocab & Grammar elements
   const vocabContent = document.getElementById('vocab-content');
-  const selectAllVocab = document.getElementById('select-all-vocab');
-  const btnDeleteVocab = document.getElementById('btn-delete-vocab');
-  const vocabCountSpan = document.getElementById('vocab-count');
-
-  // Grammar elements
   const grammarContent = document.getElementById('grammar-content');
-  const selectAllGrammar = document.getElementById('select-all-grammar');
-  const btnDeleteGrammar = document.getElementById('btn-delete-grammar');
-  const grammarCountSpan = document.getElementById('grammar-count');
+
+  // Action bar elements (chung)
+  const selectAllCheckbox = document.getElementById('select-all-checkbox');
+  const btnDeleteSelected = document.getElementById('btn-delete-selected');
+  const selectedCountSpan = document.getElementById('selected-count');
 
   // State
   let currentView = 'main'; // 'main' or 'settings'
@@ -38,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showSettings() {
     currentView = 'settings';
     mainView.style.display = 'none';
+    actionBar.style.display = 'none';
     settingsView.style.display = 'block';
     btnSettings.classList.add('active');
     btnSettings.textContent = '← Quay lại';
@@ -47,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showMainView() {
     currentView = 'main';
     mainView.style.display = 'grid';
+    actionBar.style.display = 'flex';
     settingsView.style.display = 'none';
     btnSettings.classList.remove('active');
     btnSettings.textContent = '⚙️ Cài đặt API';
@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = result.savedVocab || [];
       console.log("Từ vựng:", list.length);
       renderVocabList(list);
+      updateActionBar();
     });
   }
 
@@ -71,7 +72,50 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = result.savedGrammar || [];
       console.log("Ngữ pháp:", list.length);
       renderGrammarList(list);
+      updateActionBar();
     });
+  }
+
+  // === NHÓM THEO NGÀY ===
+  function groupByDate(list) {
+    const groups = {};
+
+    list.forEach(item => {
+      const dateObj = item.date ? new Date(item.date) : new Date();
+      const dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          date: dateObj,
+          items: []
+        };
+      }
+      groups[dateKey].items.push(item);
+    });
+
+    // Sắp xếp theo ngày mới nhất trước
+    return Object.entries(groups)
+      .sort((a, b) => b[1].date - a[1].date)
+      .map(([key, value]) => value);
+  }
+
+  function formatDateHeader(date) {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const dateStr = date.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    if (dateStr === todayStr) return '📅 Hôm nay';
+    if (dateStr === yesterdayStr) return '📅 Hôm qua';
+
+    // Format: ngày/tháng/năm
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `📅 ${day}/${month}/${year}`;
   }
 
   // === RENDER VOCAB ===
@@ -84,47 +128,65 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    [...list].reverse().forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'card';
+    const groups = groupByDate(list);
 
-      const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
+    groups.forEach(group => {
+      // Tạo date header
+      const dateHeader = document.createElement('div');
+      dateHeader.className = 'date-header';
+      dateHeader.textContent = formatDateHeader(group.date);
+      vocabContent.appendChild(dateHeader);
 
-      card.innerHTML = `
-        <input type="checkbox" class="vocab-checkbox" value="${item.word}">
-        <div class="card-content">
-          <h3>
-            ${item.word}
-            <span class="btn-speak" title="Nghe phát âm">🔊</span>
-            <span class="card-reading">(${item.reading})</span>
-          </h3>
-          <p>${item.mean}</p>
-          <small style="color:#999; font-size:11px;">${dateStr}</small>
-        </div>
-        <button class="delete-btn">Xóa</button>
-      `;
+      // Tạo nhóm cards
+      const dateGroup = document.createElement('div');
+      dateGroup.className = 'date-group';
 
-      // Sự kiện loa
-      card.querySelector('.btn-speak').onclick = (e) => {
-        e.stopPropagation();
-        speakJapanese(item.word);
-      };
+      group.items.forEach((item) => {
+        const card = createVocabCard(item);
+        dateGroup.appendChild(card);
+      });
 
-      // Sự kiện checkbox
-      const checkbox = card.querySelector('.vocab-checkbox');
-      checkbox.onchange = () => updateVocabDeleteButton();
-
-      // Sự kiện xóa
-      card.querySelector('.delete-btn').onclick = () => {
-        if (confirm(`Xóa từ: "${item.word}"?`)) {
-          deleteVocabItems([item.word]);
-        }
-      };
-
-      vocabContent.appendChild(card);
+      vocabContent.appendChild(dateGroup);
     });
 
-    updateVocabDeleteButton();
+    updateDeleteButton();
+  }
+
+  function createVocabCard(item) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    card.innerHTML = `
+      <input type="checkbox" class="item-checkbox vocab-checkbox" value="${item.word}" data-type="vocab">
+      <div class="card-content">
+        <h3>
+          ${item.word}
+          <span class="btn-speak" title="Nghe phát âm">🔊</span>
+          <span class="card-reading">(${item.reading})</span>
+        </h3>
+        <p>${item.mean}</p>
+      </div>
+      <button class="delete-btn">Xóa</button>
+    `;
+
+    // Sự kiện loa
+    card.querySelector('.btn-speak').onclick = (e) => {
+      e.stopPropagation();
+      speakJapanese(item.word);
+    };
+
+    // Sự kiện checkbox
+    const checkbox = card.querySelector('.item-checkbox');
+    checkbox.onchange = () => updateDeleteButton();
+
+    // Sự kiện xóa
+    card.querySelector('.delete-btn').onclick = () => {
+      if (confirm(`Xóa từ: "${item.word}"?`)) {
+        deleteItems([{ type: 'vocab', id: item.word }]);
+      }
+    };
+
+    return card;
   }
 
   // === RENDER GRAMMAR ===
@@ -137,123 +199,127 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    [...list].reverse().forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'card grammar';
+    const groups = groupByDate(list);
 
-      const dateStr = item.date ? new Date(item.date).toLocaleDateString() : '';
+    groups.forEach(group => {
+      // Tạo date header
+      const dateHeader = document.createElement('div');
+      dateHeader.className = 'date-header grammar';
+      dateHeader.textContent = formatDateHeader(group.date);
+      grammarContent.appendChild(dateHeader);
 
-      card.innerHTML = `
-        <input type="checkbox" class="grammar-checkbox" value="${item.structure}">
-        <div class="card-content">
-          <h3>${item.structure}</h3>
-          <p>${item.explain}</p>
-          <small style="color:#999; font-size:11px;">${dateStr}</small>
-        </div>
-        <button class="delete-btn">Xóa</button>
-      `;
+      // Tạo nhóm cards
+      const dateGroup = document.createElement('div');
+      dateGroup.className = 'date-group';
 
-      // Sự kiện checkbox
-      const checkbox = card.querySelector('.grammar-checkbox');
-      checkbox.onchange = () => updateGrammarDeleteButton();
-
-      // Sự kiện xóa
-      card.querySelector('.delete-btn').onclick = () => {
-        if (confirm(`Xóa ngữ pháp: "${item.structure}"?`)) {
-          deleteGrammarItems([item.structure]);
-        }
-      };
-
-      grammarContent.appendChild(card);
-    });
-
-    updateGrammarDeleteButton();
-  }
-
-  // === VOCAB: SELECT ALL ===
-  if (selectAllVocab) {
-    selectAllVocab.onchange = () => {
-      const checkboxes = document.querySelectorAll('.vocab-checkbox');
-      checkboxes.forEach(cb => cb.checked = selectAllVocab.checked);
-      updateVocabDeleteButton();
-    };
-  }
-
-  // === GRAMMAR: SELECT ALL ===
-  if (selectAllGrammar) {
-    selectAllGrammar.onchange = () => {
-      const checkboxes = document.querySelectorAll('.grammar-checkbox');
-      checkboxes.forEach(cb => cb.checked = selectAllGrammar.checked);
-      updateGrammarDeleteButton();
-    };
-  }
-
-  // === VOCAB: DELETE BUTTON ===
-  if (btnDeleteVocab) {
-    btnDeleteVocab.onclick = () => {
-      const checkboxes = document.querySelectorAll('.vocab-checkbox:checked');
-      if (checkboxes.length === 0) return;
-
-      if (confirm(`Xóa ${checkboxes.length} từ vựng đã chọn?`)) {
-        const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
-        deleteVocabItems(idsToDelete);
-      }
-    };
-  }
-
-  // === GRAMMAR: DELETE BUTTON ===
-  if (btnDeleteGrammar) {
-    btnDeleteGrammar.onclick = () => {
-      const checkboxes = document.querySelectorAll('.grammar-checkbox:checked');
-      if (checkboxes.length === 0) return;
-
-      if (confirm(`Xóa ${checkboxes.length} ngữ pháp đã chọn?`)) {
-        const idsToDelete = Array.from(checkboxes).map(cb => cb.value);
-        deleteGrammarItems(idsToDelete);
-      }
-    };
-  }
-
-  // === UPDATE BUTTONS ===
-  function updateVocabDeleteButton() {
-    if (!vocabCountSpan || !btnDeleteVocab) return;
-
-    const count = document.querySelectorAll('.vocab-checkbox:checked').length;
-    vocabCountSpan.textContent = count;
-    btnDeleteVocab.disabled = count === 0;
-  }
-
-  function updateGrammarDeleteButton() {
-    if (!grammarCountSpan || !btnDeleteGrammar) return;
-
-    const count = document.querySelectorAll('.grammar-checkbox:checked').length;
-    grammarCountSpan.textContent = count;
-    btnDeleteGrammar.disabled = count === 0;
-  }
-
-  // === DELETE FUNCTIONS ===
-  function deleteVocabItems(idsToDelete) {
-    chrome.storage.local.get(['savedVocab'], (result) => {
-      let list = result.savedVocab || [];
-      const newList = list.filter(item => !idsToDelete.includes(item.word));
-
-      chrome.storage.local.set({ savedVocab: newList }, () => {
-        console.log(`Đã xóa ${idsToDelete.length} từ vựng`);
-        if (selectAllVocab) selectAllVocab.checked = false;
-        loadVocabData();
+      group.items.forEach((item) => {
+        const card = createGrammarCard(item);
+        dateGroup.appendChild(card);
       });
+
+      grammarContent.appendChild(dateGroup);
+    });
+
+    updateDeleteButton();
+  }
+
+  function createGrammarCard(item) {
+    const card = document.createElement('div');
+    card.className = 'card grammar';
+
+    card.innerHTML = `
+      <input type="checkbox" class="item-checkbox grammar-checkbox" value="${item.structure}" data-type="grammar">
+      <div class="card-content">
+        <h3>${item.structure}</h3>
+        <p>${item.explain}</p>
+      </div>
+      <button class="delete-btn">Xóa</button>
+    `;
+
+    // Sự kiện checkbox
+    const checkbox = card.querySelector('.item-checkbox');
+    checkbox.onchange = () => updateDeleteButton();
+
+    // Sự kiện xóa
+    card.querySelector('.delete-btn').onclick = () => {
+      if (confirm(`Xóa ngữ pháp: "${item.structure}"?`)) {
+        deleteItems([{ type: 'grammar', id: item.structure }]);
+      }
+    };
+
+    return card;
+  }
+
+  // === SELECT ALL (CHUNG) ===
+  if (selectAllCheckbox) {
+    selectAllCheckbox.onchange = () => {
+      const checkboxes = document.querySelectorAll('.item-checkbox');
+      checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+      updateDeleteButton();
+    };
+  }
+
+  // === DELETE (CHUNG) ===
+  if (btnDeleteSelected) {
+    btnDeleteSelected.onclick = () => {
+      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+      if (checkboxes.length === 0) return;
+
+      if (confirm(`Bạn có chắc muốn xóa ${checkboxes.length} mục đã chọn không?`)) {
+        const itemsToDelete = Array.from(checkboxes).map(cb => ({
+          type: cb.dataset.type,
+          id: cb.value
+        }));
+        deleteItems(itemsToDelete);
+      }
+    };
+  }
+
+  // === UPDATE DELETE BUTTON ===
+  function updateDeleteButton() {
+    if (!selectedCountSpan || !btnDeleteSelected) return;
+
+    const count = document.querySelectorAll('.item-checkbox:checked').length;
+    selectedCountSpan.textContent = count;
+    btnDeleteSelected.disabled = count === 0;
+  }
+
+  // === UPDATE ACTION BAR VISIBILITY ===
+  function updateActionBar() {
+    chrome.storage.local.get(['savedVocab', 'savedGrammar'], (result) => {
+      const vocabCount = (result.savedVocab || []).length;
+      const grammarCount = (result.savedGrammar || []).length;
+
+      if (actionBar) {
+        actionBar.style.display = (vocabCount > 0 || grammarCount > 0) ? 'flex' : 'none';
+      }
     });
   }
 
-  function deleteGrammarItems(idsToDelete) {
-    chrome.storage.local.get(['savedGrammar'], (result) => {
-      let list = result.savedGrammar || [];
-      const newList = list.filter(item => !idsToDelete.includes(item.structure));
+  // === DELETE ITEMS (CHUNG) ===
+  function deleteItems(itemsToDelete) {
+    const vocabIds = itemsToDelete.filter(item => item.type === 'vocab').map(item => item.id);
+    const grammarIds = itemsToDelete.filter(item => item.type === 'grammar').map(item => item.id);
 
-      chrome.storage.local.set({ savedGrammar: newList }, () => {
-        console.log(`Đã xóa ${idsToDelete.length} ngữ pháp`);
-        if (selectAllGrammar) selectAllGrammar.checked = false;
-        loadGrammarData();
+    chrome.storage.local.get(['savedVocab', 'savedGrammar'], (result) => {
+      let updates = {};
+
+      if (vocabIds.length > 0) {
+        const vocabList = result.savedVocab || [];
+        const newVocabList = vocabList.filter(item => !vocabIds.includes(item.word));
+        updates.savedVocab = newVocabList;
+      }
+
+      if (grammarIds.length > 0) {
+        const grammarList = result.savedGrammar || [];
+        const newGrammarList = grammarList.filter(item => !grammarIds.includes(item.structure));
+        updates.savedGrammar = newGrammarList;
+      }
+
+      chrome.storage.local.set(updates, () => {
+        console.log(`Đã xóa: ${vocabIds.length} từ vựng, ${grammarIds.length} ngữ pháp`);
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+        loadBothData();
       });
     });
   }
