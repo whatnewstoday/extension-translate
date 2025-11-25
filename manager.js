@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(([key, value]) => value);
   }
 
-  function formatDateHeader(date) {
+  function formatDateHeader(date, count) {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -108,14 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const todayStr = today.toISOString().split('T')[0];
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    if (dateStr === todayStr) return '📅 Hôm nay';
-    if (dateStr === yesterdayStr) return '📅 Hôm qua';
+    if (dateStr === todayStr) return `📅 Hôm nay (${count})`;
+    if (dateStr === yesterdayStr) return `📅 Hôm qua (${count})`;
 
     // Format: ngày/tháng/năm
     const day = date.getDate();
     const month = date.getMonth() + 1;
     const year = date.getFullYear();
-    return `📅 ${day}/${month}/${year}`;
+    return `📅 ${day}/${month}/${year} (${count})`;
   }
 
   // === RENDER VOCAB ===
@@ -131,10 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const groups = groupByDate(list);
 
     groups.forEach(group => {
-      // Tạo date header
+      // Tạo date header với số lượng
       const dateHeader = document.createElement('div');
       dateHeader.className = 'date-header';
-      dateHeader.textContent = formatDateHeader(group.date);
+      dateHeader.textContent = formatDateHeader(group.date, group.items.length);
       vocabContent.appendChild(dateHeader);
 
       // Tạo nhóm cards
@@ -202,10 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const groups = groupByDate(list);
 
     groups.forEach(group => {
-      // Tạo date header
+      // Tạo date header với số lượng
       const dateHeader = document.createElement('div');
       dateHeader.className = 'date-header grammar';
-      dateHeader.textContent = formatDateHeader(group.date);
+      dateHeader.textContent = formatDateHeader(group.date, group.items.length);
       grammarContent.appendChild(dateHeader);
 
       // Tạo nhóm cards
