@@ -31,7 +31,7 @@ style.innerHTML = `
   #gemini-translator-popup.active {
     display: flex;
   }
-
+  /*header controls*/
   #gemini-translator-popup h4 {
     margin: 0;
     padding: 12px 15px;
@@ -159,7 +159,7 @@ style.innerHTML = `
 
   .result-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* Đảm bảo khi text quá dài, icon vẫn nằm trên cùng */
     justify-content: space-between;
     padding: 10px 12px;
     background: #2b303b;
@@ -170,7 +170,7 @@ style.innerHTML = `
 
   .result-header-main {
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* icon mũi tên và text căn đầu dòng */
     gap: 8px;
     flex: 1;
     cursor: pointer;
@@ -189,10 +189,19 @@ style.innerHTML = `
     font-size: 10px;
     color: #4CAF50;
     transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-top: 5px;
   }
 
   .result-item.collapsed .collapse-icon {
     transform: rotate(-90deg);
+  }
+  .result-item:not(.collapsed) .selected-text {
+    white-space: normal; /* cho phép text xuống dòng */
+    word-break: break-word; /* cho phép text break word nếu quá dài*/
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 5px; /* chừa chỗ cho thanh cuộn */
   }
 
   .selected-text {
@@ -202,7 +211,11 @@ style.innerHTML = `
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: max-height 0.3s ease;
   }
+  .selected-text::-webkit-scrollbar { width: 4px; }
+  .selected-text::-webkit-scrollbar-track { background: transparent; }
+  .selected-text::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
 
   .delete-history-btn {
     background: transparent;
@@ -214,21 +227,26 @@ style.innerHTML = `
     opacity: 0.6;
     transition: opacity 0.2s;
     flex-shrink: 0; /* không cho phép nút xóa thu hẹp */
+    margin-top: -2px;
   }
 
   .delete-history-btn:hover {
     opacity: 1;
+    background: rgba(255, 82, 82, 0.1);
+    border-radius: 4px;
   }
 
   .result-body {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
+    
   }
 
   .result-body.active {
     max-height: 2000px;
     padding: 12px;
+    border-top: 1px solid #3e4147;
   }
 
   .empty-state {
