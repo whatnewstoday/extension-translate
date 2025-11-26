@@ -550,13 +550,11 @@ chrome.runtime.onMessage.addListener((request) => {
   switch (request.action) {
     case "showLoading":
       contentArea.scrollTop = 0;
-      // Hiển thị loading
-      const loadingText = request.loadingText || 'Đang dịch...';
       mainBody.innerHTML = `
-        <div style="text-align:center; padding: 20px;">
-          <div class="spinner"></div> ${loadingText}
-        </div>
-        `;
+                <div style="text-align:center; padding: 20px;">
+                    <div class="spinner"></div> Đang phân tích...
+                </div>
+            `;
       mainResult.querySelector('.selected-text').textContent = request.originalText || 'Đang tải...';
       mainResult.classList.remove('collapsed');
       mainBody.classList.add('active');
