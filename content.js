@@ -160,10 +160,12 @@ style.innerHTML = `
   .result-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
     padding: 10px 12px;
     background: #2b303b;
     user-select: none;
+    width: 100%; /* Chiếm toàn bộ chiều rộng */
+    box-sizing: border-box; /* Bao gồm padding và border */
   }
 
   .result-header-main {
@@ -172,6 +174,11 @@ style.innerHTML = `
     gap: 8px;
     flex: 1;
     cursor: pointer;
+    min-width: 0; /* Cho phép text overflow */
+    margin-right: 8px; /* Tạo khoảng cách giữa nút và text */
+    overflow: hidden; /* Ẩn text khi vượt quá chiều rộng */
+    text-overflow: ellipsis; /* Hiển thị dấu ba chấm khi text bị cắt */
+    white-space: nowrap; /* Ngăn text không xuống dòng */
   }
 
   .result-header-main:hover {
@@ -206,6 +213,7 @@ style.innerHTML = `
     padding: 4px;
     opacity: 0.6;
     transition: opacity 0.2s;
+    flex-shrink: 0; /* không cho phép nút xóa thu hẹp */
   }
 
   .delete-history-btn:hover {
@@ -297,6 +305,21 @@ if (!popup) {
     e.stopPropagation();
     chrome.runtime.sendMessage({ action: "openOptionsPage" });
   };
+
+  // Event: Close button
+  const closeBtn = popup.querySelector('#clear-main-result');
+  if (closeBtn) {
+    closeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      //reset về trạng thái trống
+      const mainResult = document.getElementById('main-result');
+      const mainBody = mainResult.querySelector('.result-body');
+      mainResult.classList.add('collapsed');
+      mainBody.innerHTML = '<div style="padding: 10px; text-align:center; color:#888">Đã xóa kết quả hiện tại</div>';
+      mainResult.querySelector('.selected-text').textContent = '(Trống)';
+    }
+  }
 }
 
 const closeBtn = document.getElementById('close-gemini-popup');
