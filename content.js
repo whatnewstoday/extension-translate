@@ -1,5 +1,5 @@
 // ==========================================
-// 1. CSS STYLING (Giao diện Flexbox, Resize, Scroll)
+// 1. CSS STYLING
 // ==========================================
 const style = document.createElement('style');
 style.innerHTML = `
@@ -8,7 +8,7 @@ style.innerHTML = `
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 999999; /* Z-index cao nhất để không bị che */
+    z-index: 999999;
     background: #20232b;
     color: #ffffff;
     border: 1px solid #4a4d52;
@@ -17,15 +17,13 @@ style.innerHTML = `
     font-family: 'Segoe UI', sans-serif;
     user-select: none;
     
-    /* Layout Flexbox & Kích thước */
-    display: none; /* Mặc định ẩn */
+    display: none;
     flex-direction: column;
     width: 450px;
     max-width: 90vw;
     max-height: 80vh;
     min-height: 150px;
     
-    /* Resize & Scroll fix */
     resize: both;
     overflow: hidden;
   }
@@ -34,7 +32,6 @@ style.innerHTML = `
     display: flex;
   }
 
-  /* Header (Tay nắm kéo thả) */
   #gemini-translator-popup h4 {
     margin: 0;
     padding: 12px 15px;
@@ -50,7 +47,6 @@ style.innerHTML = `
     align-items: center;
   }
 
-  /* Nút đóng (X) */
   #close-gemini-popup {
     background: transparent;
     border: none;
@@ -67,23 +63,20 @@ style.innerHTML = `
     background: rgba(255,255,255,0.1);
   }
 
-  /* Vùng nội dung */
   #gemini-content-area {
     padding: 15px;
-    overflow-y: auto; /* Scroll dọc */
-    overscroll-behavior: contain; /* CHẶN CUỘN LAN RA BODY */
+    overflow-y: auto;
+    overscroll-behavior: contain;
     flex-grow: 1;
     font-size: 14px;
     line-height: 1.6;
     word-wrap: break-word;
   }
 
-  /* Scrollbar đẹp */
   #gemini-content-area::-webkit-scrollbar { width: 8px; }
   #gemini-content-area::-webkit-scrollbar-track { background: #20232b; }
   #gemini-content-area::-webkit-scrollbar-thumb { background: #4a4d52; border-radius: 4px; }
 
-  /* Định dạng nội dung HTML trả về */
   #gemini-content-area ul { padding-left: 20px; margin: 5px 0; }
   #gemini-content-area li { margin-bottom: 8px; }
   #gemini-content-area hr { border: 0; border-top: 1px solid #4a4d52; margin: 15px 0; }
@@ -96,14 +89,12 @@ style.innerHTML = `
   }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-  /* Header Controls (Gom nhóm nút đóng và nút manager) */
   .header-controls {
     display: flex;
     align-items: center;
-    gap: 10px; /* Khoảng cách giữa 2 nút */
+    gap: 10px;
   }
 
-  /* Style chung cho các nút trên header */
   .header-btn {
     background: transparent;
     border: none;
@@ -119,32 +110,153 @@ style.innerHTML = `
     justify-content: center;
   }
 
-  /* Hiệu ứng hover cho nút Đóng */
   #close-gemini-popup:hover {
     color: #ff5252;
     background: rgba(255,255,255,0.1);
   }
 
-  /* Hiệu ứng hover cho nút Sổ tay */
   #open-manager-btn:hover {
-    color: #4CAF50; /* Màu xanh lá */
+    color: #4CAF50;
     background: rgba(255,255,255,0.1);
-    transform: scale(1.1); /* Phóng to nhẹ */
+    transform: scale(1.1);
+  }
+
+  /* ===== HISTORY SECTION ===== */
+  #history-section {
+    margin-top: 15px;
+    border-top: 2px solid #4a4d52;
+    padding-top: 10px;
+  }
+
+  .history-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .history-count {
+    font-size: 11px;
+    color: #666;
+  }
+
+  /* Result Item (Main + History) */
+  .result-item {
+    margin-bottom: 8px;
+    border: 1px solid #4a4d52;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+
+  .result-item:hover {
+    border-color: #4CAF50;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #2b303b;
+    user-select: none;
+  }
+
+  .result-header-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .result-header-main:hover {
+    opacity: 0.9;
+  }
+
+  .collapse-icon {
+    font-size: 10px;
+    color: #4CAF50;
+    transition: transform 0.2s;
+  }
+
+  .result-item.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+  }
+
+  .selected-text {
+    flex: 1;
+    font-size: 14px;
+    color: #ccc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .delete-history-btn {
+    background: transparent;
+    border: none;
+    color: #ff5252;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .delete-history-btn:hover {
+    opacity: 1;
+  }
+
+  .result-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .result-body.active {
+    max-height: 2000px;
+    padding: 12px;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: #888;
+    padding: 20px;
+    font-style: italic;
+  }
+
+  .btn-speak {
+    transition: transform 0.2s;
+    display: inline-block;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+
+  .btn-speak:hover {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  .btn-speak:active {
+    transform: scale(0.9);
   }
 `;
 document.head.appendChild(style);
 
 // ==========================================
-// 2. TẠO POPUP VÀ BIẾN TOÀN CỤC
+// 2. CREATE POPUP
 // ==========================================
 let popup = document.getElementById('gemini-translator-popup');
 
-// Nếu chưa có thì tạo mới
 if (!popup) {
   popup = document.createElement('div');
   popup.id = 'gemini-translator-popup';
 
-  // Cập nhật HTML: Thêm div bao quanh 2 nút
   popup.innerHTML = `
         <h4>
             <span>Gemini Japanese AI</span>
@@ -153,44 +265,59 @@ if (!popup) {
                  <button id="close-gemini-popup" class="header-btn" title="Đóng">&times;</button>
             </div>
         </h4>
-        <div id="gemini-content-area"></div>
+        <div id="gemini-content-area">
+            <!-- Main result -->
+            <div id="main-result" class="result-item">
+                <div class="result-header">
+                    <div class="result-header-main">
+                        <span class="collapse-icon">▼</span>
+                        <span class="selected-text">Đang tải...</span>
+                    </div>
+                </div>
+                <div class="result-body active">
+                    <div class="spinner"></div> Đang phân tích...
+                </div>
+            </div>
+            
+            <!-- History section -->
+            <div id="history-section">
+                <div class="history-title">
+                    <span>📜 Lịch sử</span>
+                </div>
+                <div id="history-list"></div>
+            </div>
+        </div>
     `;
   document.body.appendChild(popup);
 
-  // --- SỰ KIỆN NÚT SỔ TAY ---
-  // Cần stopPropagation để tránh kích hoạt sự kiện kéo thả (Drag) của header
+  // Event: Manager button
   const managerBtn = popup.querySelector('#open-manager-btn');
   managerBtn.addEventListener('mousedown', (e) => e.stopPropagation());
   managerBtn.onclick = (e) => {
-    e.stopPropagation(); // Ngăn kéo thả
+    e.stopPropagation();
     chrome.runtime.sendMessage({ action: "openOptionsPage" });
-    // Popup vẫn giữ nguyên khi mở trang quản lý (không đóng)
   };
 }
 
-// Lấy các element con quan trọng
 const closeBtn = document.getElementById('close-gemini-popup');
 const headerHandler = popup.querySelector('h4');
 const contentArea = document.getElementById('gemini-content-area');
 
 // ==========================================
-// 3. XỬ LÝ SỰ KIỆN (Logic quan trọng)
+// 3. EVENT HANDLERS
 // ==========================================
 
-// --- A. ĐÓNG POPUP (Nút X) ---
-// Dùng onclick trực tiếp để đảm bảo priority cao nhất
+// Close button
 closeBtn.onclick = (e) => {
-  // Ngăn chặn sự kiện nổi bọt lên Header (để tránh kích hoạt Drag)
   e.stopPropagation();
   popup.classList.remove('active');
 };
 
-// --- B. KÉO THẢ (DRAG) ---
+// Drag and drop
 let isDragging = false;
 let offsetX, offsetY;
 
 headerHandler.addEventListener('mousedown', (e) => {
-  // FIX QUAN TRỌNG: Nếu click vào nút đóng (hoặc con của nút đóng), thì KHÔNG kéo
   if (e.target.closest('#close-gemini-popup')) return;
 
   isDragging = true;
@@ -198,14 +325,13 @@ headerHandler.addEventListener('mousedown', (e) => {
   offsetX = e.clientX - rect.left;
   offsetY = e.clientY - rect.top;
 
-  // Reset transform để tính toán theo pixel chuẩn
   popup.style.transform = 'none';
   popup.style.margin = '0';
 });
 
 document.addEventListener('mousemove', (e) => {
   if (isDragging) {
-    e.preventDefault(); // Chống bôi đen text khi kéo
+    e.preventDefault();
     popup.style.left = `${e.clientX - offsetX}px`;
     popup.style.top = `${e.clientY - offsetY}px`;
   }
@@ -215,61 +341,216 @@ document.addEventListener('mouseup', () => {
   isDragging = false;
 });
 
-// --- C. CLICK RA NGOÀI ĐỂ ĐÓNG (ĐÃ VÔ HIỆU HÓA) ---
-// Popup chỉ đóng khi nhấn nút X, không đóng khi click ra ngoài
-// document.addEventListener('mousedown', (e) => {
-//   if (popup.classList.contains('active') && !popup.contains(e.target)) {
-//     popup.classList.remove('active');
-//   }
-// });
+// ==========================================
+// 4. HISTORY MANAGEMENT
+// ==========================================
+
+// Auto-cleanup old history (30 days)
+function cleanupOldHistory() {
+  chrome.storage.local.get(['analysisHistory'], (data) => {
+    let history = data.analysisHistory || [];
+    const now = Date.now();
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+
+    const filtered = history.filter(item => {
+      return (now - item.timestamp) < thirtyDaysInMs;
+    });
+
+    if (filtered.length !== history.length) {
+      chrome.storage.local.set({ analysisHistory: filtered });
+      console.log(`Đã xóa ${history.length - filtered.length} lịch sử cũ (>30 ngày)`);
+    }
+  });
+}
+
+// Save to history
+function saveToHistory(selectedText, type, resultData) {
+  const historyItem = {
+    id: Date.now().toString(),
+    selectedText: selectedText,
+    type: type,
+    result: resultData,
+    timestamp: Date.now()
+  };
+
+  chrome.storage.local.get(['analysisHistory'], (data) => {
+    let history = data.analysisHistory || [];
+
+    history.unshift(historyItem);
+
+    if (history.length > 20) {
+      history = history.slice(0, 20);
+    }
+
+    chrome.storage.local.set({ analysisHistory: history }, () => {
+      renderHistory();
+    });
+  });
+}
+
+// Render history (show only 5 items)
+function renderHistory() {
+  chrome.storage.local.get(['analysisHistory'], (data) => {
+    const allHistory = data.analysisHistory || [];
+    const historyList = document.getElementById('history-list');
+    const historyTitle = document.querySelector('.history-title');
+
+    if (allHistory.length === 0) {
+      historyList.innerHTML = '<div class="empty-state">Chưa có lịch sử</div>';
+      historyTitle.innerHTML = '<span>📜 Lịch sử</span>';
+      return;
+    }
+
+    historyTitle.innerHTML = `
+      <span>📜 Lịch sử</span>
+      <span class="history-count">(${Math.min(5, allHistory.length)}/${allHistory.length})</span>
+    `;
+
+    const displayHistory = allHistory.slice(0, 5);
+
+    historyList.innerHTML = '';
+    displayHistory.forEach(item => {
+      const historyItem = createHistoryItem(item);
+      historyList.appendChild(historyItem);
+    });
+  });
+}
+
+// Create history item
+function createHistoryItem(item) {
+  const div = document.createElement('div');
+  div.className = 'result-item collapsed';
+  div.dataset.id = item.id;
+
+  const header = document.createElement('div');
+  header.className = 'result-header';
+
+  const headerMain = document.createElement('div');
+  headerMain.className = 'result-header-main';
+  headerMain.innerHTML = `
+    <span class="collapse-icon">▼</span>
+    <span class="selected-text">${escapeHtml(item.selectedText)}</span>
+  `;
+  headerMain.onclick = () => toggleResultItem(div);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-history-btn';
+  deleteBtn.innerHTML = '🗑️';
+  deleteBtn.title = 'Xóa lịch sử này';
+  deleteBtn.onclick = (e) => {
+    e.stopPropagation();
+    deleteHistoryItem(item.id);
+  };
+
+  header.appendChild(headerMain);
+  header.appendChild(deleteBtn);
+
+  const body = document.createElement('div');
+  body.className = 'result-body';
+  renderAnalysisUI(body, item.result);
+
+  div.appendChild(header);
+  div.appendChild(body);
+
+  return div;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Delete history item
+function deleteHistoryItem(itemId) {
+  chrome.storage.local.get(['analysisHistory'], (data) => {
+    let history = data.analysisHistory || [];
+
+    history = history.filter(item => item.id !== itemId);
+
+    chrome.storage.local.set({ analysisHistory: history }, () => {
+      console.log(`Đã xóa lịch sử ${itemId}`);
+      renderHistory();
+    });
+  });
+}
+
+// Toggle accordion
+function toggleResultItem(itemElement) {
+  const isCurrentlyExpanded = !itemElement.classList.contains('collapsed');
+
+  document.querySelectorAll('.result-item').forEach(item => {
+    item.classList.add('collapsed');
+    item.querySelector('.result-body').classList.remove('active');
+  });
+
+  if (!isCurrentlyExpanded) {
+    itemElement.classList.remove('collapsed');
+    itemElement.querySelector('.result-body').classList.add('active');
+  }
+}
+
+// Toggle main result
+document.querySelector('#main-result .result-header-main').onclick = () => {
+  toggleResultItem(document.getElementById('main-result'));
+};
+
+// Init: cleanup old history
+cleanupOldHistory();
+renderHistory();
 
 // ==========================================
-// 4. LẮNG NGHE TIN NHẮN TỪ BACKGROUND
+// 5. MESSAGE LISTENER
 // ==========================================
 chrome.runtime.onMessage.addListener((request) => {
-  const contentArea = document.getElementById('gemini-content-area');
+  const mainResult = document.getElementById('main-result');
+  const mainBody = mainResult.querySelector('.result-body');
 
   switch (request.action) {
     case "showLoading":
-      // Reset scroll về đầu trang khi load nội dung mới
       contentArea.scrollTop = 0;
-      contentArea.innerHTML = `
+      mainBody.innerHTML = `
                 <div style="text-align:center; padding: 20px;">
                     <div class="spinner"></div> Đang phân tích...
                 </div>
             `;
+      mainResult.querySelector('.selected-text').textContent = request.originalText || 'Đang tải...';
+      mainResult.classList.remove('collapsed');
+      mainBody.classList.add('active');
       popup.classList.add('active');
       break;
 
     case "displayResult":
-      //reset nội dung cũ
-      contentArea.innerHTML = '';
-      //gọi hàm render dữ liệu json
-      renderAnalysisUI(contentArea, request.data);
+      mainBody.innerHTML = '';
+      renderAnalysisUI(mainBody, request.data);
+
+      mainResult.querySelector('.selected-text').textContent = request.originalText || 'Kết quả mới';
+
+      saveToHistory(request.originalText, request.data.type || 'analysis', request.data);
+
+      mainResult.classList.remove('collapsed');
+      mainBody.classList.add('active');
       break;
 
     case "displayError":
-      contentArea.innerHTML = `<p style="color:#ff5252;">Lỗi: ${request.message}</p>`;
+      mainBody.innerHTML = `<p style="color:#ff5252;">Lỗi: ${request.message}</p>`;
       break;
   }
 });
 
-//Hàm hiển thị kết quả phân tích dưới dạng UI
+// ==========================================
+// 6. RENDER UI
+// ==========================================
 function renderAnalysisUI(container, data) {
-  // 1. Dịch thường
   if (data.translatedText) {
     container.innerHTML = `<p><strong>Kết quả:</strong></p><p>${data.translatedText}</p>`;
     return;
   }
 
-  // 2. Phân tích tiếng Nhật
-
-  // --- Phần Ý nghĩa ---
   const meaningEl = document.createElement('div');
   meaningEl.innerHTML = `<b>Ý nghĩa:</b> ${data.meaning} <hr>`;
   container.appendChild(meaningEl);
 
-  // --- Phần Từ vựng ---
   if (data.vocab && data.vocab.length > 0) {
     const vocabTitle = document.createElement('div');
     vocabTitle.innerHTML = `<b>Từ vựng:</b>`;
@@ -286,7 +567,6 @@ function renderAnalysisUI(container, data) {
       const textSpan = document.createElement('span');
       textSpan.innerHTML = `<span style="color:#81C784; font-weight:bold;">${word.word}</span> (${word.reading}) : ${word.mean}`;
 
-      // Nút Lưu Từ Vựng
       const saveBtn = createSaveButton();
       saveBtn.onclick = () => saveVocabulary(word, saveBtn);
 
@@ -297,7 +577,6 @@ function renderAnalysisUI(container, data) {
     container.appendChild(ul);
   }
 
-  // --- Phần Ngữ pháp (CẬP NHẬT MỚI) ---
   if (data.grammar && data.grammar.length > 0) {
     const grammarTitle = document.createElement('div');
     grammarTitle.innerHTML = `<hr><b>Ngữ pháp & Cấu trúc:</b>`;
@@ -308,16 +587,14 @@ function renderAnalysisUI(container, data) {
       const li = document.createElement('li');
       li.style.display = "flex";
       li.style.justifyContent = "space-between";
-      li.style.alignItems = "start"; // Căn lề trên để đẹp hơn nếu text dài
+      li.style.alignItems = "start";
       li.style.marginBottom = "8px";
 
-      // Nội dung ngữ pháp
       const textSpan = document.createElement('span');
-      textSpan.style.flex = "1"; // Để text chiếm hết chỗ, đẩy nút sang phải
+      textSpan.style.flex = "1";
       textSpan.style.marginRight = "10px";
       textSpan.innerHTML = `<b style="color:#FFB74D">${gram.structure}</b>: ${gram.explain}`;
 
-      // Nút Lưu Ngữ Pháp (MỚI)
       const saveBtn = createSaveButton();
       saveBtn.onclick = () => saveGrammar(gram, saveBtn);
 
@@ -329,7 +606,6 @@ function renderAnalysisUI(container, data) {
   }
 }
 
-// --- Hàm tạo nút Save (Helper) ---
 function createSaveButton() {
   const btn = document.createElement('button');
   btn.innerHTML = "💾";
@@ -338,16 +614,11 @@ function createSaveButton() {
   return btn;
 }
 
-// --- Logic Lưu Từ Vựng ---
 function saveVocabulary(wordObj, btnElement) {
-  console.log("Đang lưu từ vựng:", wordObj); // DEBUG: Xem object có dữ liệu không
-
   chrome.storage.local.get(['savedVocab'], (result) => {
     let currentList = result.savedVocab || [];
 
-    // Kiểm tra xem wordObj có đúng cấu trúc không
     if (!wordObj || !wordObj.word) {
-      console.error("Lỗi: Dữ liệu từ vựng bị thiếu!", wordObj);
       alert("Không thể lưu từ này do lỗi dữ liệu.");
       return;
     }
@@ -359,24 +630,19 @@ function saveVocabulary(wordObj, btnElement) {
       currentList.push(newEntry);
 
       chrome.storage.local.set({ savedVocab: currentList }, () => {
-        console.log("Lưu thành công! Tổng số từ:", currentList.length);
         updateBtnStatus(btnElement);
       });
     } else {
-      console.log("Từ đã tồn tại");
       alert("Từ này đã có trong sổ tay!");
     }
   });
 }
 
 function saveGrammar(gramObj, btnElement) {
-  console.log("Đang lưu ngữ pháp:", gramObj); // DEBUG
-
   chrome.storage.local.get(['savedGrammar'], (result) => {
     let currentList = result.savedGrammar || [];
 
     if (!gramObj || !gramObj.structure) {
-      console.error("Lỗi: Dữ liệu ngữ pháp bị thiếu!", gramObj);
       return;
     }
 
@@ -387,7 +653,6 @@ function saveGrammar(gramObj, btnElement) {
       currentList.push(newEntry);
 
       chrome.storage.local.set({ savedGrammar: currentList }, () => {
-        console.log("Lưu ngữ pháp thành công!");
         updateBtnStatus(btnElement);
       });
     } else {
@@ -396,7 +661,6 @@ function saveGrammar(gramObj, btnElement) {
   });
 }
 
-// --- Hàm đổi trạng thái nút sau khi lưu ---
 function updateBtnStatus(btn) {
   btn.innerHTML = "✅";
   btn.style.borderColor = "#4CAF50";

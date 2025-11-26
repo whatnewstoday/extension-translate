@@ -99,11 +99,11 @@ async function handleGeminiRequest(type, text, tabId) {
     const jsonData = JSON.parse(cleanJson);
 
     // Gửi kết quả về Frontend
-    // Đảm bảo tabId hợp lệ
     if (tabId) {
       chrome.tabs.sendMessage(tabId, {
         action: "displayResult",
-        data: jsonData
+        data: jsonData,
+        originalText: text
       });
     }
 
