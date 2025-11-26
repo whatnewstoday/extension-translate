@@ -67,7 +67,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // 3. Hàm xử lý logic gọi API
 async function handleGeminiRequest(type, text, tabId) {
-  // Lấy API key từ storage
+  // Lấy API key
   const apiKey = await getApiKey();
 
   if (!apiKey) {
@@ -78,16 +78,25 @@ async function handleGeminiRequest(type, text, tabId) {
     return;
   }
 
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  // Cấu hình Model
+  let modelName = "";
+  if (type === MENUS.TRANSLATE) {
+    modelName = "gemini-2.5-flash-lite"; // Dịch: Nhanh, Rẻ
+  } else {
+    modelName = "gemini-2.5-flash"; // Phân tích: Ổn định JSON
+  }
+
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   let prompt = "";
 
+  // [THAY ĐỔI 1] Prompt dịch: Chỉ yêu cầu text thuần túy, KHÔNG JSON
   if (type === MENUS.TRANSLATE) {
-    prompt = `Dịch đoạn văn sau sang tiếng Việt.
-    Trả về định dạng JSON duy nhất: { "translatedText": "nội dung dịch" }
+    prompt = `Dịch đoạn văn bản sau sang tiếng Việt. Chỉ trả về kết quả dịch, không giải thích gì thêm, không dùng dấu ngoặc kép bao quanh nếu không cần thiết.
     Văn bản: "${text}"`;
   }
   else if (type === MENUS.JAPANESE_ANALYSIS) {
+    // Prompt phân tích: Vẫn giữ nguyên yêu cầu JSON
     prompt = `Bạn là giáo viên tiếng Nhật N1. Hãy phân tích đoạn văn: "${text}"
     
     Yêu cầu trả về CHÍNH XÁC định dạng JSON này (không thêm markdown):
@@ -101,13 +110,13 @@ async function handleGeminiRequest(type, text, tabId) {
         { "structure": "Cấu trúc", "explain": "Giải thích ngắn gọn" }
       ]
     }
-    Lưu ý quan trọng:
-    1. Hãy tách riêng từ vựng và ngữ pháp.
-    2. Phần "grammar" BẮT BUỘC phải có. Nếu không có mẫu ngữ pháp N1-N5 nào, hãy giải thích cấu trúc câu cơ bản (ví dụ: chia thể động từ, trợ từ...).`;
+    Lưu ý:
+    1. Tách riêng từ vựng và ngữ pháp.
+    2. Phần "grammar" BẮT BUỘC phải có.`;
   }
 
   try {
-    const response = await fetch(API_URL, {
+    const response = await fetchWithRetry(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -118,16 +127,41 @@ async function handleGeminiRequest(type, text, tabId) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error?.message || "API Error");
 
-    // Xử lý dữ liệu trả về
     let rawText = data.candidates[0].content.parts[0].text;
-    const cleanJson = rawText.replace(/```json|```/g, '').trim();
-    const jsonData = JSON.parse(cleanJson);
+    let finalData = null;
 
-    // Gửi kết quả về Frontend
-    if (tabId) {
+    // [THAY ĐỔI 2] Xử lý kết quả dựa trên loại Menu
+    if (type === MENUS.TRANSLATE) {
+      // --- LOGIC CHO DỊCH THUẬT (TEXT) ---
+      // Lấy nguyên văn text, chỉ xóa khoảng trắng thừa
+      finalData = {
+        translatedText: rawText.trim()
+      };
+    }
+    else {
+      // --- LOGIC CHO PHÂN TÍCH (JSON) ---
+      // Trích xuất JSON từ dấu { đến dấu }
+      const startIndex = rawText.indexOf('{');
+      const endIndex = rawText.lastIndexOf('}');
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        const jsonString = rawText.substring(startIndex, endIndex + 1);
+        try {
+          finalData = JSON.parse(jsonString);
+        } catch (e) {
+          console.error("Lỗi Parse JSON:", e);
+          throw new Error("Lỗi định dạng JSON từ AI. Hãy thử lại.");
+        }
+      } else {
+        throw new Error("AI không trả về đúng định dạng JSON.");
+      }
+    }
+
+    // Gửi kết quả về Frontend (Cấu trúc dữ liệu vẫn đồng nhất)
+    if (tabId && finalData) {
       chrome.tabs.sendMessage(tabId, {
         action: "displayResult",
-        data: jsonData,
+        data: finalData,
         originalText: text
       });
     }
@@ -142,34 +176,6 @@ async function handleGeminiRequest(type, text, tabId) {
     }
   }
 }
-
-// 4. Xử lý Phím tắt
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command === "translate_selection") {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    if (tab?.id) {
-      try {
-        const results = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => window.getSelection().toString()
-        });
-
-        const selectedText = results[0]?.result;
-        if (selectedText) {
-          chrome.tabs.sendMessage(tab.id, {
-            action: "showLoading",
-            originalText: selectedText
-          }).catch(() => { });
-
-          handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, selectedText, tab.id);
-        }
-      } catch (e) {
-        console.log("Không thể lấy văn bản (Tab hệ thống hoặc chưa F5):", e);
-      }
-    }
-  }
-});
 
 // 5. Xử lý Runtime Messages
 chrome.runtime.onMessage.addListener((request) => {
