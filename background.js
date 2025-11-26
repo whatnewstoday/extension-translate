@@ -177,7 +177,7 @@ async function handleGeminiRequest(type, text, tabId) {
   }
 }
 
-// 5. Xử lý Runtime Messages
+// 5. Xử lý shortcut từ keyboard
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "cmd_reload_extension") {
     // 1. Reload trang web hiện tại trước
