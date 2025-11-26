@@ -178,14 +178,43 @@ async function handleGeminiRequest(type, text, tabId) {
 }
 
 // 5. Xử lý Runtime Messages
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.action === "openOptionsPage") {
-    chrome.runtime.openOptionsPage();
-  } else if (request.action === "analyzeText") {
-    // Xử lý từ popup.js - phân tích văn bản
-    handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, request.text, request.tabId);
-  } else if (request.action === "translateText") {
-    // Xử lý từ popup.js - dịch văn bản
-    handleGeminiRequest(MENUS.TRANSLATE, request.text, request.tabId);
+chrome.commands.onCommand.addListener(async (command) => {
+  // Lệnh _execute_action (Mở Icon) Chrome tự xử lý, ta không cần bắt ở đây
+
+  if (command === "cmd_translate" || command === "cmd_analyze") {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab?.id) {
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => window.getSelection().toString()
+        });
+
+        const selectedText = results[0]?.result;
+
+        if (selectedText && selectedText.trim().length > 0) {
+          // Hiện loading
+          chrome.tabs.sendMessage(tab.id, {
+            action: "showLoading",
+            originalText: selectedText
+          }).catch(() => { });
+
+          // Phân loại lệnh
+          if (command === "cmd_translate") {
+            // Gọi Dịch (Flash Lite)
+            handleGeminiRequest(MENUS.TRANSLATE, selectedText, tab.id);
+          }
+          else if (command === "cmd_analyze") {
+            // Gọi Phân tích (Flash 2.5)
+            handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, selectedText, tab.id);
+          }
+        } else {
+          console.log("Chưa bôi đen văn bản.");
+        }
+      } catch (e) {
+        console.log("Lỗi:", e);
+      }
+    }
   }
 });

@@ -32,12 +32,26 @@
     "default_title": "Mở Gemini Japanese"
   },
   "commands": {
-    "translate_selection": {
+    "cmd_translate": {
       "suggested_key": {
-        "default": "Ctrl+Shift+Y",
+        "default": "Ctrl+Shift+G",
         "mac": "Command+Shift+Y"
       },
-      "description": "Dịch văn bản bôi đen băng Gemini"
+      "description": "1. Dịch nhanh (Gemini Flash Lite)"
+    },
+    "cmd_analyze": {
+      "suggested_key": {
+        "default": "Ctrl+G",
+        "mac": "Command+Shift+U"
+      },
+      "description": "2. Phân tích ngữ pháp (Gemini Flash 2.5)"
+    },
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+L",
+        "mac": "Command+Shift+L"
+      },
+      "description": "3. Mở Menu/Sổ tay (Click Icon)"
     }
   }
 }
