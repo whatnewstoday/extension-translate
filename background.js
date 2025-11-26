@@ -31,6 +31,7 @@ async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
     throw error;
   }
 }
+
 // Định nghĩa các ID menu
 const MENUS = {
   TRANSLATE: "translate_normal",
@@ -170,8 +171,12 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+// 5. Xử lý Runtime Messages
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "openOptionsPage") {
     chrome.runtime.openOptionsPage();
+  } else if (request.action === "analyzeText") {
+    // Xử lý từ popup.js - phân tích văn bản
+    handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, request.text, request.tabId);
   }
 });
