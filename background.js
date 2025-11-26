@@ -7,6 +7,30 @@ async function getApiKey() {
   });
 }
 
+// hàm fetch :tự động thử lại khi có 429
+async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
+  try {
+    const response = await fetch(url, options);
+    if (response.status === 429) {
+      if (retries > 0) {
+        console.warn(`Gặp lỗi 429. Đang chờ ${backoff}ms để thử lại... (Còn ${retries} lần)`);
+
+        //chờ 1 chút (backoff)
+        await new Promise(resolve => setTimeout(resolve, backoff));
+
+        //đệ quy lại hàm với thời gian chờ tăng gấp đôi
+        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+      } else {
+        throw new Error("Đã hết lần thử. Hệ thống đang quá tải. Vui lòng thử lại sau.");
+      }
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Lỗi khi gọi API:", error);
+    throw error;
+  }
+}
 // Định nghĩa các ID menu
 const MENUS = {
   TRANSLATE: "translate_normal",
