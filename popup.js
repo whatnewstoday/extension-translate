@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const btnManager = document.getElementById('btn-open-manager');
   const btnAnalyze = document.getElementById('btn-analyze-text');
+  const btnTranslate = document.getElementById('btn-translate-text');
 
   // Nút mở Manager (Sổ tay)
   if (btnManager) {
@@ -9,53 +10,62 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Nút dịch văn bản
+  if (btnTranslate) {
+    btnTranslate.onclick = async () => {
+      await handleTextAction('translate');
+    };
+  }
+
   // Nút phân tích văn bản
   if (btnAnalyze) {
     btnAnalyze.onclick = async () => {
-      // Lấy tab hiện tại
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await handleTextAction('analyze');
+    };
+  }
 
-      if (!tab?.id) {
-        alert('Không thể lấy thông tin tab. Vui lòng thử lại.');
+  // Hàm xử lý chung cho cả dịch và phân tích
+  async function handleTextAction(actionType) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab?.id) {
+      alert('Không thể lấy thông tin tab. Vui lòng thử lại.');
+      return;
+    }
+
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.getSelection().toString()
+      });
+
+      const selectedText = results[0]?.result;
+
+      if (!selectedText || selectedText.trim() === '') {
+        alert('Vui lòng bôi đen văn bản trước!');
         return;
       }
 
-      try {
-        // Lấy văn bản đã bôi đen
-        const results = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => window.getSelection().toString()
-        });
+      // Gửi message hiển thị loading
+      chrome.tabs.sendMessage(tab.id, {
+        action: "showLoading",
+        originalText: selectedText
+      }).catch(() => {
+        alert('Lỗi: Hãy reload (F5) trang web rồi thử lại!');
+      });
 
-        const selectedText = results[0]?.result;
+      // Gọi API tương ứng
+      chrome.runtime.sendMessage({
+        action: actionType === 'translate' ? "translateText" : "analyzeText",
+        text: selectedText,
+        tabId: tab.id
+      });
 
-        if (!selectedText || selectedText.trim() === '') {
-          alert('Vui lòng bôi đen văn bản trước khi phân tích!');
-          return;
-        }
+      window.close();
 
-        // Gửi message để hiển thị loading
-        chrome.tabs.sendMessage(tab.id, {
-          action: "showLoading",
-          originalText: selectedText
-        }).catch(() => {
-          alert('Lỗi: Hãy reload (F5) trang web rồi thử lại!');
-        });
-
-        // Gọi API phân tích
-        chrome.runtime.sendMessage({
-          action: "analyzeText",
-          text: selectedText,
-          tabId: tab.id
-        });
-
-        // Đóng popup
-        window.close();
-
-      } catch (error) {
-        console.error("Lỗi:", error);
-        alert('Không thể phân tích văn bản. Hãy reload (F5) trang web và thử lại!');
-      }
-    };
+    } catch (error) {
+      console.error("Lỗi:", error);
+      alert('Không thể thực hiện. Hãy reload (F5) trang web và thử lại!');
+    }
   }
 });

@@ -178,5 +178,8 @@ chrome.runtime.onMessage.addListener((request) => {
   } else if (request.action === "analyzeText") {
     // Xử lý từ popup.js - phân tích văn bản
     handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, request.text, request.tabId);
+  } else if (request.action === "translateText") {
+    // Xử lý từ popup.js - dịch văn bản
+    handleGeminiRequest(MENUS.TRANSLATE, request.text, request.tabId);
   }
 });
