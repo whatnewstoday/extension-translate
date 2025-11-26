@@ -279,6 +279,19 @@ document.head.appendChild(style);
 // ==========================================
 let popup = document.getElementById('gemini-translator-popup');
 
+function restorePopupPosition() {
+  chrome.storage.local.get(['popupPosition'], (result) => {
+    if (result.popupPosition && popup) {
+      //apply saved position
+      popup.style.top = result.popupPosition.top;
+      popup.style.left = result.popupPosition.left;
+      //reset transform và margin mặc định
+      popup.style.transform = 'none';
+      popup.style.margin = '0';
+    }
+  });
+}
+
 if (!popup) {
   popup = document.createElement('div');
   popup.id = 'gemini-translator-popup';
@@ -315,6 +328,8 @@ if (!popup) {
         </div>
     `;
   document.body.appendChild(popup);
+
+  restorePopupPosition();
 
   // Event: Manager button
   const managerBtn = popup.querySelector('#open-manager-btn');
@@ -379,9 +394,27 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mouseup', () => {
-  isDragging = false;
-});
+  if (isDragging) {
+    isDragging = false;
 
+    // [FIX LỖI CONTEXT INVALIDATED]
+    // Kiểm tra xem Extension context còn hợp lệ không trước khi gọi API
+    if (!chrome.runtime?.id) {
+      console.warn("Extension đã được reload. Vui lòng F5 trang web.");
+      return; // Dừng lại, không gọi chrome.storage nữa
+    }
+    // Lưu vị trí khi thả chuột
+    if (popup) {
+      const position = {
+        top: popup.style.top,
+        left: popup.style.left
+      };
+      chrome.storage.local.set({ popupPosition: position }, () => {
+        console.log("Đã lưu vị trí popup:", position);
+      });
+    }
+  }
+});
 // ==========================================
 // 4. HISTORY MANAGEMENT
 // ==========================================
@@ -549,6 +582,9 @@ chrome.runtime.onMessage.addListener((request) => {
 
   switch (request.action) {
     case "showLoading":
+      //khi popup hiện lại, kiểm tra và khôi phục vị trí
+      restorePopupPosition();
+
       contentArea.scrollTop = 0;
       mainBody.innerHTML = `
                 <div style="text-align:center; padding: 20px;">
