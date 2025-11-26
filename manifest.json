@@ -52,6 +52,13 @@
         "mac": "Command+Shift+L"
       },
       "description": "3. Mở Menu/Sổ tay (Click Icon)"
+    },
+    "cmd_reload_extension": {
+    "suggested_key": {
+      "default": "Alt+R",
+      "mac": "Alt+R"
+    },
+      "description": " Reload Extension & Webpage"
     }
   }
 }

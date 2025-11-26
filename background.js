@@ -179,8 +179,24 @@ async function handleGeminiRequest(type, text, tabId) {
 
 // 5. Xử lý Runtime Messages
 chrome.commands.onCommand.addListener(async (command) => {
-  // Lệnh _execute_action (Mở Icon) Chrome tự xử lý, ta không cần bắt ở đây
+  if (command === "cmd_reload_extension") {
+    // 1. Reload trang web hiện tại trước
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      // Chúng ta reload tab trước khi reload extension, 
+      // để khi extension sống lại thì tab đã sạch sẽ.
+      chrome.tabs.reload(tab.id);
+    }
 
+    // 2. Reload chính Extension này
+    // setTimeout nhỏ để đảm bảo lệnh reload tab kịp gửi đi
+    setTimeout(() => {
+      chrome.runtime.reload();
+    }, 100);
+
+    return; // Dừng xử lý các lệnh khác
+  }
+  // Lệnh _execute_action (Mở Icon) Chrome tự xử lý, ta không cần bắt ở đây
   if (command === "cmd_translate" || command === "cmd_analyze") {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
