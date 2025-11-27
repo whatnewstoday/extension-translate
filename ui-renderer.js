@@ -27,15 +27,12 @@ function initPopup() {
         </h4>
 
         <div id="gemini-content-area">
-            
             <div id="analysis-view" style="display:flex; flex-direction:column; flex-grow:1; min-height:0; overflow:hidden;">
                 <div id="static-meaning"></div>
-
                 <div class="tabs-nav">
                     <button class="tab-btn active" data-tab="tab-vocab">Từ vựng</button>
                     <button class="tab-btn" data-tab="tab-grammar">Ngữ pháp</button>
                 </div>
-
                 <div class="tab-content-container" id="tabs-container">
                     <div id="tab-vocab" class="tab-pane active"></div>
                     <div id="tab-grammar" class="tab-pane"></div>
@@ -49,11 +46,22 @@ function initPopup() {
                 <div id="history-list"></div>
             </div>
         </div>
+        
+        <div class="resizer resizer-n" data-dir="n"></div>
+        <div class="resizer resizer-s" data-dir="s"></div>
+        <div class="resizer resizer-e" data-dir="e"></div>
+        <div class="resizer resizer-w" data-dir="w"></div>
+        <div class="resizer resizer-ne" data-dir="ne"></div>
+        <div class="resizer resizer-nw" data-dir="nw"></div>
+        <div class="resizer resizer-se" data-dir="se"></div>
+        <div class="resizer resizer-sw" data-dir="sw"></div>
     `;
   document.body.appendChild(popup);
 
   // 3. Gắn sự kiện cơ bản
   setupEvents();
+
+  setupResizing();
 
   // 4. Khôi phục vị trí
   restorePopupPosition();
@@ -107,6 +115,84 @@ function setupEvents() {
   });
 }
 
+//ham xu li resize
+function setupResizing() {
+  const resizers = popup.querySelectorAll('.resizer');
+  let currentResizer;
+  let isResizing = false;
+  let startX, startY, startW, startH, startTop, startLeft;
+
+  resizers.forEach(resizer => {
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      currentResizer = resizer;
+      isResizing = true;
+
+      // Lưu trạng thái ban đầu
+      const rect = popup.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
+      startW = rect.width;
+      startH = rect.height;
+      startTop = rect.top;
+      startLeft = rect.left;
+
+      window.addEventListener('mousemove', resize);
+      window.addEventListener('mouseup', stopResize);
+    });
+  });
+
+  function resize(e) {
+    if (!isResizing) return;
+
+    const direction = currentResizer.getAttribute('data-dir');
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // Xử lý theo từng hướng
+    // 1. Thay đổi chiều rộng/ngang
+    if (direction.includes('e')) { // Kéo sang Phải
+      popup.style.width = `${startW + dx}px`;
+    }
+    else if (direction.includes('w')) { // Kéo sang Trái (Khó: Phải thay đổi cả Left)
+      const newW = startW - dx;
+      if (newW > 300) { // Kiểm tra min-width (khớp với CSS)
+        popup.style.width = `${newW}px`;
+        popup.style.left = `${startLeft + dx}px`;
+      }
+    }
+
+    // 2. Thay đổi chiều cao/dọc
+    if (direction.includes('s')) { // Kéo xuống Dưới
+      popup.style.height = `${startH + dy}px`;
+    }
+    else if (direction.includes('n')) { // Kéo lên Trên (Khó: Phải thay đổi cả Top)
+      const newH = startH - dy;
+      if (newH > 250) { // Kiểm tra min-height
+        popup.style.height = `${newH}px`;
+        popup.style.top = `${startTop + dy}px`;
+      }
+    }
+  }
+
+  function stopResize() {
+    if (isResizing) {
+      isResizing = false;
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResize);
+
+      // Lưu cả Vị trí và Kích thước (Vì kéo trái/trên thay đổi cả vị trí)
+      if (chrome.runtime?.id) {
+        chrome.storage.local.set({
+          popupSize: { width: popup.style.width, height: popup.style.height },
+          popupPosition: { top: popup.style.top, left: popup.style.left }
+        });
+      }
+    }
+  }
+}
+// Khôi phục vị trí popup
 function restorePopupPosition() {
   chrome.storage.local.get(['popupPosition'], (result) => {
     if (result.popupPosition && popup) {

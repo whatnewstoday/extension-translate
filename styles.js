@@ -6,12 +6,11 @@
  * 2. Hàm `injectStyles()`: Tạo thẻ <style> và chèn vào <head> của trang web hiện tại.
  */
 const CSS_CONTENT = `
-  /* ... Paste toàn bộ nội dung CSS trong dấu backtick ở đây ... */
-  /* Nhớ xóa đoạn document.head.appendChild(style); ở đây đi, ta sẽ làm ở ui-renderer */
   /* --- BASE POPUP --- */
   #gemini-translator-popup {
     position: fixed;
-    top: 50%; left: 50%;
+    top: 50%; 
+    left: 50%;
     transform: translate(-50%, -50%);
     z-index: 999999;
     background: #20232b;
@@ -28,11 +27,37 @@ const CSS_CONTENT = `
     max-width: 90vw;
     max-height: 80vh;
     min-height: 200px;
-    
-    resize: both;
-    overflow: hidden;
+
+    /*mặc định kích thước*/
+    width: 450px;
+    height: 400px; /* Chiều cao mặc định */
+    min-width: 300px;
+    min-height: 250px;
+    max-width: 90vw;
+    max-height: 90vh;
+
+    overflow: visible;
   }
   #gemini-translator-popup.active { display: flex; }
+
+  /* --- [MỚI] HỆ THỐNG RESIZER (8 HƯỚNG) --- */
+  .resizer {
+    position: absolute;
+    background: transparent; /* Trong suốt */
+    z-index: 1000000; /* Luôn nằm trên cùng */
+  }
+
+  /* 1. Bốn Cạnh (Dày 5px để dễ bắt chuột) */
+  .resizer-n { top: -5px; left: 0; right: 0; height: 10px; cursor: ns-resize; } /* Bắc (Trên) */
+  .resizer-s { bottom: -5px; left: 0; right: 0; height: 10px; cursor: ns-resize; } /* Nam (Dưới) */
+  .resizer-e { right: -5px; top: 0; bottom: 0; width: 10px; cursor: ew-resize; } /* Đông (Phải) */
+  .resizer-w { left: -5px; top: 0; bottom: 0; width: 10px; cursor: ew-resize; } /* Tây (Trái) */
+
+  /* 2. Bốn Góc (Vuông 15px) */
+  .resizer-ne { top: -5px; right: -5px; width: 15px; height: 15px; cursor: nesw-resize; z-index: 1000001; } /* Đông Bắc */
+  .resizer-nw { top: -5px; left: -5px; width: 15px; height: 15px; cursor: nwse-resize; z-index: 1000001; } /* Tây Bắc */
+  .resizer-se { bottom: -5px; right: -5px; width: 15px; height: 15px; cursor: nwse-resize; z-index: 1000001; } /* Đông Nam */
+  .resizer-sw { bottom: -5px; left: -5px; width: 15px; height: 15px; cursor: nesw-resize; z-index: 1000001; } /* Tây Nam */
 
   /* HEADER */
   #gemini-translator-popup h4 {
