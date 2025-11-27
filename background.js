@@ -234,3 +234,13 @@ chrome.commands.onCommand.addListener(async (command) => {
     }
   }
 });
+
+// ==========================================
+// 5. LẮNG NGHE YÊU CẦU TỪ FRONTEND
+// ==========================================
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Lắng nghe lệnh mở trang Options (Sổ tay)
+  if (request.action === "openOptionsPage") {
+    chrome.runtime.openOptionsPage();
+  }
+});
