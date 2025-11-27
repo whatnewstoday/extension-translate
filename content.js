@@ -356,35 +356,150 @@ function createSaveButton() {
 }
 
 // Reuse History & Save (Giữ nguyên logic cũ)
-function cleanupOldHistory() { /*...*/ }
+function cleanupOldHistory() {
+  chrome.storage.local.get(['analysisHistory'], (data) => {
+    let history = data.analysisHistory || [];
+    // Gán ID cho các item cũ chưa có ID (Fix lỗi dữ liệu cũ)
+    let hasChanges = false;
+    history = history.map((item, index) => {
+      if (!item.id) {
+        item.id = Date.now().toString() + "_" + index; // Tạo ID giả
+        hasChanges = true;
+      }
+      return item;
+    });
+
+    const now = Date.now();
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    const filtered = history.filter(item => (now - (item.timestamp || 0)) < thirtyDaysInMs);
+
+    if (filtered.length !== history.length || hasChanges) {
+      chrome.storage.local.set({ analysisHistory: filtered });
+    }
+  });
+}
+// Lưu lịch sử
 function saveToHistory(text, type, data) {
-  const item = { id: Date.now().toString(), selectedText: text, type, result: data, timestamp: Date.now() };
+  // Tạo ID bằng timestamp + random để đảm bảo duy nhất
+  const uniqueId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+
+  const item = {
+    id: uniqueId,
+    selectedText: text,
+    type: type,
+    result: data,
+    timestamp: Date.now()
+  };
+
   chrome.storage.local.get(['analysisHistory'], (res) => {
-    let h = res.analysisHistory || []; h.unshift(item); if (h.length > 20) h = h.slice(0, 20);
+    let h = res.analysisHistory || [];
+    h.unshift(item);
+    if (h.length > 20) h = h.slice(0, 20);
     chrome.storage.local.set({ analysisHistory: h }, renderHistory);
   });
 }
+// Render Lịch Sử
 function renderHistory() {
   chrome.storage.local.get(['analysisHistory'], (res) => {
     const h = res.analysisHistory || [];
     const list = document.getElementById('history-list');
     if (!list) return;
-    if (h.length === 0) { list.innerHTML = '<div class="empty-state">Chưa có lịch sử</div>'; return; }
-    list.innerHTML = '';
-    h.slice(0, 5).forEach(item => {
+
+    if (h.length === 0) {
+      list.innerHTML = '<div class="empty-state" style="padding:10px; font-size:12px">Chưa có lịch sử</div>';
+      return;
+    }
+
+    list.innerHTML = ''; // Xóa cũ
+
+    h.forEach(item => {
       const div = document.createElement('div');
       div.className = 'result-item collapsed';
-      // Render History Header (Text only)
-      div.innerHTML = `
-                <div class="result-header">
-                    <div class="result-header-main" style="min-width:0">
-                       <span class="selected-text" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${item.selectedText}</span>
-                    </div>
-                </div>`;
+      div.style.marginBottom = '5px';
+
+      const header = document.createElement('div');
+      header.className = 'result-header';
+
+      // Text Content
+      const headerMain = document.createElement('div');
+      headerMain.className = 'result-header-main';
+      headerMain.style.minWidth = '0';
+      headerMain.innerHTML = `<span class="selected-text" title="${escapeHtml(item.selectedText)}">${escapeHtml(item.selectedText)}</span>`;
+
+      headerMain.onclick = () => restoreHistoryItem(item);
+
+      // Button Delete
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-history-btn';
+      deleteBtn.innerHTML = '🗑️';
+      deleteBtn.title = "Xóa mục này";
+
+      // [QUAN TRỌNG] Sự kiện xóa
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        console.log("Đang xóa item ID:", item.id); // Debug
+        deleteHistoryItem(item.id);
+      };
+
+      header.appendChild(headerMain);
+      header.appendChild(deleteBtn);
+      div.appendChild(header);
       list.appendChild(div);
     });
   });
 }
+
+//hàm khôi phục mục lịch sử
+function restoreHistoryItem(item) {
+  const analysisView = document.getElementById('analysis-view');
+  const simpleView = document.getElementById('simple-translate-view');
+
+  if (item.type === 'text' || (item.result && item.result.translatedText)) {
+    analysisView.style.display = 'none';
+    simpleView.style.display = 'block';
+    simpleView.innerHTML = `
+            <div style="margin-bottom:10px; color:#888; font-size:12px">Văn bản gốc: ${item.selectedText}</div>
+            <div style="font-size:16px; line-height:1.6">${item.result.translatedText}</div>
+        `;
+  } else {
+    simpleView.style.display = 'none';
+    analysisView.style.display = 'flex';
+    if (item.result) renderAnalysisUI(item.result);
+  }
+}
+
+function deleteHistoryItem(itemId) {
+  chrome.storage.local.get(['analysisHistory'], (data) => {
+    let history = data.analysisHistory || [];
+    const originalLength = history.length;
+
+    // Ép kiểu về String để so sánh chính xác 100%
+    history = history.filter(item => String(item.id) !== String(itemId));
+
+    if (history.length < originalLength) {
+      chrome.storage.local.set({ analysisHistory: history }, () => {
+        console.log("Đã xóa thành công!");
+        renderHistory(); // Vẽ lại giao diện ngay lập tức
+      });
+    } else {
+      console.warn("Không tìm thấy ID để xóa (Lỗi dữ liệu cũ). Đang dọn dẹp...");
+      // Nếu không xóa được (do ID null), chạy lại cleanup
+      cleanupOldHistory();
+      renderHistory();
+    }
+  });
+}
+//r Escape HTML (Để tránh lỗi hiển thị ký tự đặc biệt)
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function saveVocabulary(obj, btn) {
   chrome.storage.local.get(['savedVocab'], r => {
     let l = r.savedVocab || []; if (!l.some(i => i.word === obj.word)) { l.push({ ...obj, date: new Date().toISOString() }); chrome.storage.local.set({ savedVocab: l }, () => { btn.innerHTML = "✅"; btn.disabled = true; }); }
@@ -397,4 +512,5 @@ function saveGrammar(obj, btn) {
 }
 
 // Init
+cleanupOldHistory();
 renderHistory();
