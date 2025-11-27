@@ -19,11 +19,12 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
+      "matches": [ "<all_urls>" ],
       "js": [
-        "content.js"
+        "styles.js",           
+        "ui-renderer.js",      
+        "history-manager.js",  
+        "content.js"           
       ]
     }
   ],
