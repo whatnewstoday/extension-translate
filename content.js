@@ -51,8 +51,11 @@ style.innerHTML = `
   /* MAIN CONTENT LAYOUT */
   #gemini-content-area {
     padding: 0;
-    overflow-y: hidden; 
-    display: flex; flex-direction: column; flex-grow: 1;
+    overflow: hidden !important; 
+    display: flex !important; 
+    flex-direction: column; 
+    flex-grow: 1;
+    min-height: 0;
   }
 
   /* --- [FEATURE] TABS STYLES (2 TABS) --- */
@@ -77,8 +80,9 @@ style.innerHTML = `
 
   .tab-content-container {
     flex-grow: 1;
-    overflow-y: auto;
+    overflow-y: auto !important;
     padding: 15px;
+    height: 100%;
     overscroll-behavior: contain;
   }
   .tab-pane { display: none; }
@@ -92,6 +96,8 @@ style.innerHTML = `
     font-size: 15px;
     line-height: 1.5;
     flex-shrink: 0;
+    max-height: 100px;
+    overflow-y: auto;
   }
 
   /* LIST STYLES */
@@ -103,8 +109,13 @@ style.innerHTML = `
   }
 
   /* HISTORY STYLES */
-  #history-section { margin-top: 15px; border-top: 2px solid #4a4d52; padding-top: 10px; }
+  #history-section { margin-top: 15px; border-top: 2px solid #4a4d52; padding-top: 10px; flex-shrink: 0; background: #20232b; }
   .history-title { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: #888; margin-bottom: 8px; }
+  #history-list {
+      max-height: 110px; /* Giới hạn chiều cao cho khoảng 2 item */
+      overflow-y: auto;
+      overscroll-behavior: contain; /* Ngăn cuộn lan ra ngoài */
+  }
   .result-item { margin-bottom: 8px; border: 1px solid #4a4d52; border-radius: 6px; overflow: hidden; }
   .result-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 12px; background: #2b303b; width: 100%; box-sizing: border-box; gap: 10px; }
   .result-header-main { display: flex; align-items: flex-start; gap: 8px; flex: 1; cursor: pointer; min-width: 0; }
@@ -117,6 +128,19 @@ style.innerHTML = `
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #20232b; }
   ::-webkit-scrollbar-thumb { background: #4a4d52; border-radius: 3px; }
+  #static-meaning::-webkit-scrollbar,
+  #history-list::-webkit-scrollbar { 
+      width: 4px; 
+  }
+  #static-meaning::-webkit-scrollbar-track,
+  #history-list::-webkit-scrollbar-track { 
+      background: transparent; 
+  }
+  #static-meaning::-webkit-scrollbar-thumb,
+  #history-list::-webkit-scrollbar-thumb { 
+      background: #4a4d52; 
+      border-radius: 2px; 
+  }
   .selected-text::-webkit-scrollbar { width: 4px; }
   .selected-text::-webkit-scrollbar-thumb { background: #555; }
   
@@ -155,7 +179,7 @@ if (!popup) {
 
         <div id="gemini-content-area">
             
-            <div id="analysis-view" style="display:none; flex-direction:column; flex-grow:1;">
+            <div id="analysis-view" style="display:flex; flex-direction:column; flex-grow:1; min-height:0; overflow:hidden;">
                 <div id="static-meaning"></div>
 
                 <div class="tabs-nav">
