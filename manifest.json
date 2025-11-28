@@ -35,8 +35,8 @@
   "commands": {
     "cmd_translate": {
       "suggested_key": {
-        "default": "Ctrl+Shift+G",
-        "mac": "Command+Shift+Y"
+        "default": "Alt+S",
+        "mac": "Alt+S"
       },
       "description": "1. Dịch nhanh (Gemini Flash Lite)"
     },
