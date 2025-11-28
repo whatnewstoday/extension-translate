@@ -42,8 +42,8 @@
     },
     "cmd_analyze": {
       "suggested_key": {
-        "default": "Ctrl+G",
-        "mac": "Command+Shift+U"
+        "default": "Alt+A",
+        "mac": "Alt+A"
       },
       "description": "2. Phân tích ngữ pháp (Gemini Flash 2.5)"
     },

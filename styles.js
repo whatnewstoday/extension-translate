@@ -131,11 +131,14 @@ const CSS_CONTENT = `
   }
 
   /* LIST STYLES */
-  ul { padding: 0; list-style: none; margin: 0; }
-  li { 
-    background: rgba(255,255,255,0.03); 
-    margin-bottom: 8px; padding: 10px; 
-    border-radius: 6px; border: 1px solid #3e4147;
+  #gemini-translator-popup ul { 
+      padding: 0; list-style: none; margin: 0; 
+  }
+  
+  #gemini-translator-popup li { 
+      background: rgba(255,255,255,0.03); 
+      margin-bottom: 8px; padding: 10px; 
+      border-radius: 6px; border: 1px solid #3e4147;
   }
 
   /* HISTORY STYLES */

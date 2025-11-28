@@ -179,24 +179,17 @@ async function handleGeminiRequest(type, text, tabId) {
 
 // 5. Xử lý shortcut từ keyboard
 chrome.commands.onCommand.addListener(async (command) => {
+  console.log("Phím tắt vừa bấm gửi lệnh:", command); // Debug
+
+  // --- XỬ LÝ RELOAD ---
   if (command === "cmd_reload_extension") {
-    // 1. Reload trang web hiện tại trước
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      // Chúng ta reload tab trước khi reload extension, 
-      // để khi extension sống lại thì tab đã sạch sẽ.
-      chrome.tabs.reload(tab.id);
-    }
-
-    // 2. Reload chính Extension này
-    // setTimeout nhỏ để đảm bảo lệnh reload tab kịp gửi đi
-    setTimeout(() => {
-      chrome.runtime.reload();
-    }, 100);
-
-    return; // Dừng xử lý các lệnh khác
+    if (tab?.id) chrome.tabs.reload(tab.id);
+    setTimeout(() => chrome.runtime.reload(), 100);
+    return;
   }
-  // Lệnh _execute_action (Mở Icon) Chrome tự xử lý, ta không cần bắt ở đây
+
+  // --- XỬ LÝ DỊCH / PHÂN TÍCH ---
   if (command === "cmd_translate" || command === "cmd_analyze") {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -210,21 +203,30 @@ chrome.commands.onCommand.addListener(async (command) => {
         const selectedText = results[0]?.result;
 
         if (selectedText && selectedText.trim().length > 0) {
-          // Hiện loading
-          chrome.tabs.sendMessage(tab.id, {
-            action: "showLoading",
-            originalText: selectedText
-          }).catch(() => { });
 
-          // Phân loại lệnh
+          // [FIX QUAN TRỌNG] Xác định loại lệnh và Text hiển thị TRƯỚC
+          let menuType = "";
+          let loadingMessage = "";
+
           if (command === "cmd_translate") {
-            // Gọi Dịch (Flash Lite)
-            handleGeminiRequest(MENUS.TRANSLATE, selectedText, tab.id);
+            menuType = MENUS.TRANSLATE;
+            loadingMessage = "Đang dịch...";
           }
           else if (command === "cmd_analyze") {
-            // Gọi Phân tích (Flash 2.5)
-            handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, selectedText, tab.id);
+            menuType = MENUS.JAPANESE_ANALYSIS;
+            loadingMessage = "Đang phân tích...";
           }
+
+          // 1. Gửi tin nhắn hiện Loading (kèm text đúng)
+          chrome.tabs.sendMessage(tab.id, {
+            action: "showLoading",
+            originalText: selectedText,
+            loadingText: loadingMessage // Gửi text "Đang dịch" hoặc "Đang phân tích"
+          }).catch(() => { });
+
+          // 2. Gọi hàm xử lý API với đúng loại menu
+          handleGeminiRequest(menuType, selectedText, tab.id);
+
         } else {
           console.log("Chưa bôi đen văn bản.");
         }
