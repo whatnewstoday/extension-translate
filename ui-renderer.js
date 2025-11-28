@@ -67,6 +67,24 @@ function initPopup() {
   restorePopupPosition();
 }
 
+//hàm lưu trạng thái popup
+function savePopupState() {
+  if (!popup || !chrome.runtime?.id) return;
+
+  try {
+    const computedStyle = window.getComputedStyle(popup);
+    const width = popup.style.width || computedStyle.width;
+    const height = popup.style.height || computedStyle.height;
+
+    const state = {
+      popupPosition: { top: popup.style.top, left: popup.style.left },
+      popupSize: { width: width, height: height }
+    }
+  } catch (e) {
+    console.error("Lỗi lưu trạng thái popup:", e);
+  }
+}
+
 function setupEvents() {
   // Tab Switching
   const tabBtns = popup.querySelectorAll('.tab-btn');
