@@ -418,3 +418,92 @@ input[type="checkbox"] {
         grid-template-columns: 1fr;
     }
 }
+/* [MỚI] REVIEW MODE STYLES */
+
+/* Nút Review trên thanh công cụ */
+.btn-review {
+    background: #673AB7; color: white; border: none;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    margin-left: 10px; font-weight: bold;
+}
+.btn-review:hover { background: #512DA8; }
+
+/* Modal bao phủ toàn màn hình */
+.modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); /* Nền tối */
+    z-index: 1000;
+    display: flex; justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+}
+.modal.hidden { display: none; }
+
+.review-container {
+    width: 500px; max-width: 90%;
+    display: flex; flex-direction: column; gap: 20px;
+}
+
+.review-header {
+    display: flex; justify-content: space-between; color: #aaa; font-size: 18px;
+}
+.close-btn { background: none; border: none; color: #fff; font-size: 30px; cursor: pointer; }
+
+/* 3D Flashcard Scene */
+.flashcard-scene {
+    perspective: 1000px;
+    height: 300px; /* Chiều cao thẻ */
+    cursor: pointer;
+}
+
+.flashcard {
+    width: 100%; height: 100%;
+    position: relative;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+/* Class này được JS thêm vào để lật thẻ */
+.flashcard.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.card-face {
+    position: absolute; width: 100%; height: 100%;
+    backface-visibility: hidden; /* Ẩn mặt sau khi lật */
+    border-radius: 15px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    padding: 20px; text-align: center;
+}
+
+.card-front {
+    background: #ffffff; color: #333;
+}
+
+.card-back {
+    background: #252830; color: #fff;
+    transform: rotateY(180deg); /* Mặt sau mặc định quay ngược */
+    border: 1px solid #4a4d52;
+}
+
+#card-front-content { font-size: 40px; font-weight: bold; color: #212121; }
+#card-back-content { font-size: 18px; line-height: 1.6; }
+.card-hint { font-size: 12px; color: #999; margin-top: 20px; position: absolute; bottom: 15px; }
+
+/* Nút Audio ở mặt sau */
+.audio-btn {
+    margin-top: 15px; background: rgba(255,255,255,0.1); border: 1px solid #555;
+    color: #4CAF50; padding: 5px 15px; border-radius: 20px; cursor: pointer;
+}
+.audio-btn:hover { background: #4CAF50; color: #fff; }
+
+/* Action Buttons */
+.review-actions { display: flex; gap: 20px; justify-content: center; }
+.action-btn {
+    flex: 1; padding: 15px; border: none; border-radius: 8px;
+    font-weight: bold; font-size: 16px; cursor: pointer;
+    transition: transform 0.1s;
+}
+.action-btn:active { transform: scale(0.95); }
+.btn-forgot { background: #ff5252; color: white; } /* Đỏ */
+.btn-remember { background: #4CAF50; color: white; } /* Xanh */
