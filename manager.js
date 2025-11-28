@@ -90,21 +90,57 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Sort by date desc
-    const sortedList = [...list].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    // 1. Gom nhóm theo ngày
+    const groupedData = groupByDate(list);
 
-    sortedList.forEach(item => {
-      const card = document.createElement('div');
-      card.className = `card ${type}`; // card vocab hoặc card grammar
+    // 2. Render từng nhóm
+    groupedData.forEach(([dateKey, items]) => {
+      // Tạo container cho nhóm ngày
+      const dateSection = document.createElement('div');
+      dateSection.className = 'date-section';
 
-      const idValue = type === 'vocab' ? item.word : item.structure;
-      const title = type === 'vocab' ? item.word : item.structure;
-      const subtitle = type === 'vocab' ? `(${item.reading || ''})` : '';
-      const content = type === 'vocab' ? item.mean : item.explain;
+      // Tạo Header ngày + Nút ôn tập riêng cho ngày đó
+      const dateHeader = document.createElement('div');
+      dateHeader.className = 'date-header';
+      dateHeader.innerHTML = `
+            <span class="date-title">${formatDateDisplay(dateKey)} (${items.length})</span>
+            <button class="btn-review-date" title="Chỉ ôn tập các từ của ngày này">
+                ▶️ Ôn ngày này
+            </button>
+        `;
 
-      card.innerHTML = `
+      // Gắn sự kiện cho nút ôn tập ngày
+      dateHeader.querySelector('.btn-review-date').onclick = () => {
+        startReviewByDate(items, type); // Hàm mới sẽ viết ở dưới
+      };
+
+      dateSection.appendChild(dateHeader);
+
+      // Render các thẻ Card bên trong nhóm này
+      items.forEach(item => {
+        const card = createCard(item, type); // Tách hàm tạo card ra cho gọn
+        dateSection.appendChild(card);
+      });
+
+      container.appendChild(dateSection);
+    });
+  }
+
+  // Hàm phụ tạo HTML cho Card (Tách ra từ code cũ của bạn)
+  // Hàm tạo thẻ Card (Đã fix lỗi sự kiện)
+  function createCard(item, type) {
+    const card = document.createElement('div');
+    card.className = `card ${type}`;
+
+    const idValue = type === 'vocab' ? item.word : item.structure;
+    const title = type === 'vocab' ? item.word : item.structure;
+    const subtitle = type === 'vocab' ? `(${item.reading || ''})` : '';
+    const content = type === 'vocab' ? item.mean : item.explain;
+
+    card.innerHTML = `
         <div class="card-top">
             <input type="checkbox" class="item-checkbox" value="${idValue}" data-type="${type}">
+            
             <div class="card-actions">
                 <span class="btn-speak" title="Nghe">🔊</span>
                 <button class="delete-btn-mini" title="Xóa">🗑️</button>
@@ -114,41 +150,75 @@ document.addEventListener('DOMContentLoaded', () => {
             <h3>${title} <span class="reading">${subtitle}</span></h3>
             <p>${content}</p>
         </div>
-      `;
+    `;
 
-      // Events
-      card.querySelector('.item-checkbox').onchange = updateDeleteButton;
+    // --- SỰ KIỆN QUAN TRỌNG ---
 
-      card.querySelector('.btn-speak').onclick = (e) => {
-        e.stopPropagation();
-        speakJapanese(title);
-      };
-
-      card.querySelector('.delete-btn-mini').onclick = (e) => {
-        e.stopPropagation();
-        if (confirm(`Xóa mục: "${title}"?`)) {
-          deleteItems([{ type: type, id: idValue }]);
-        }
-      };
-
-      container.appendChild(card);
+    // 1. Khi tick vào checkbox -> Cập nhật trạng thái nút xóa tổng
+    const checkbox = card.querySelector('.item-checkbox');
+    checkbox.addEventListener('change', () => {
+      updateDeleteButton(); // Gọi hàm cập nhật nút xóa
     });
+
+    // 2. Nút Loa
+    card.querySelector('.btn-speak').onclick = (e) => {
+      e.stopPropagation();
+      speakJapanese(title);
+    };
+
+    // 3. Nút Xóa nhỏ (Xóa lẻ)
+    card.querySelector('.delete-btn-mini').onclick = (e) => {
+      e.stopPropagation();
+      if (confirm(`Xóa mục: "${title}"?`)) {
+        deleteItems([{ type: type, id: idValue }]);
+      }
+    };
+
+    return card;
   }
 
   // --- 4. BULK ACTIONS (DELETE, EXPORT) ---
 
   if (selectAllCheckbox) {
     selectAllCheckbox.onchange = () => {
-      const checkboxes = document.querySelectorAll('.item-checkbox');
-      checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+      // Tìm tất cả checkbox bài học (vocab hoặc grammar)
+      const allCheckboxes = document.querySelectorAll('.item-checkbox');
+
+      // Đặt trạng thái của chúng giống hệt nút "Chọn tất cả"
+      allCheckboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+      });
+
+      // Cập nhật lại nút xóa
       updateDeleteButton();
     };
   }
 
+  // Hàm cập nhật trạng thái nút "Xóa đã chọn"
   function updateDeleteButton() {
-    const count = document.querySelectorAll('.item-checkbox:checked').length;
+    // Tìm tất cả checkbox đang được tick
+    const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+    const count = checkedBoxes.length;
+
+    // Cập nhật số lượng lên giao diện
+    const selectedCountSpan = document.getElementById('selected-count');
+    const btnDeleteSelected = document.getElementById('btn-delete-selected');
+
     if (selectedCountSpan) selectedCountSpan.textContent = count;
-    if (btnDeleteSelected) btnDeleteSelected.disabled = count === 0;
+
+    // Nếu có ít nhất 1 cái được chọn thì bật nút xóa, ngược lại thì tắt
+    if (btnDeleteSelected) {
+      btnDeleteSelected.disabled = count === 0;
+
+      // Thêm chút hiệu ứng visual (tùy chọn)
+      if (count > 0) {
+        btnDeleteSelected.style.opacity = '1';
+        btnDeleteSelected.style.cursor = 'pointer';
+      } else {
+        btnDeleteSelected.style.opacity = '0.6';
+        btnDeleteSelected.style.cursor = 'not-allowed';
+      }
+    }
   }
 
   if (btnDeleteSelected) {
@@ -324,6 +394,24 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnForgot) btnForgot.onclick = (e) => { e.stopPropagation(); handleNextCard(); };
   if (btnRemember) btnRemember.onclick = (e) => { e.stopPropagation(); handleNextCard(); };
 
+  // Hàm bắt đầu ôn tập cho một danh sách cụ thể (theo ngày)
+  function startReviewByDate(items, type) {
+    // Chuyển đổi format items để phù hợp với flashcard
+    const formattedItems = items.map(item => ({
+      ...item,
+      type: type // Gán cứng loại (vocab/grammar) để flashcard hiển thị đúng
+    }));
+
+    if (formattedItems.length === 0) return;
+
+    // Set hàng đợi ôn tập
+    reviewQueue = formattedItems; // Không cần shuffle nếu muốn ôn theo thứ tự, hoặc shuffle tùy bạn
+    currentReviewIndex = 0;
+
+    // Mở Modal
+    showReviewModal();
+    loadReviewCard(0);
+  }
 
   // --- 6. UTILS & SETTINGS RENDER ---
   function speakJapanese(text) {
@@ -368,5 +456,45 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     });
   }
+  // Hàm gom nhóm danh sách theo ngày
+  function groupByDate(list) {
+    const groups = {};
 
+    list.forEach(item => {
+      // Nếu item không có date, gán vào ngày hiện tại hoặc "Unknown"
+      const dateStr = item.date ? item.date.split('T')[0] : 'unknown';
+
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(item);
+    });
+
+    // Sắp xếp các nhóm ngày giảm dần (Mới nhất lên đầu)
+    // Object.entries trả về mảng [[key, val], [key, val]]
+    return Object.entries(groups).sort((a, b) => {
+      if (a[0] === 'unknown') return 1;
+      if (b[0] === 'unknown') return -1;
+      return new Date(b[0]) - new Date(a[0]);
+    });
+  }
+
+  // Hàm format ngày cho đẹp (VD: Hôm nay, Hôm qua, 28/11/2025)
+  function formatDateDisplay(dateStr) {
+    if (dateStr === 'unknown') return 'Không xác định';
+
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const dS = date.toISOString().split('T')[0];
+    const tS = today.toISOString().split('T')[0];
+    const yS = yesterday.toISOString().split('T')[0];
+
+    if (dS === tS) return "📅 Hôm nay";
+    if (dS === yS) return "📅 Hôm qua";
+
+    return `📅 ${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  }
 });

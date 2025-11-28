@@ -507,3 +507,44 @@ input[type="checkbox"] {
 .action-btn:active { transform: scale(0.95); }
 .btn-forgot { background: #ff5252; color: white; } /* Đỏ */
 .btn-remember { background: #4CAF50; color: white; } /* Xanh */
+
+/* [MỚI] DATE GROUP STYLES */
+.date-section {
+    margin-bottom: 25px;
+}
+
+.date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #673AB7; /* Màu tím chủ đạo */
+}
+
+.date-title {
+    font-weight: bold;
+    color: #444;
+    font-size: 14px;
+}
+
+.btn-review-date {
+    background: #fff;
+    border: 1px solid #673AB7;
+    color: #673AB7;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-review-date:hover {
+    background: #673AB7;
+    color: #fff;
+}
