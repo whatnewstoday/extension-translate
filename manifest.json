@@ -7,7 +7,8 @@
     "activeTab",
     "contextMenus",
     "scripting",
-    "storage"
+    "storage",
+    "unlimitedStorage"
   ],
   "options_page": "manager.html",
   "host_permissions": [
@@ -19,12 +20,14 @@
   },
   "content_scripts": [
     {
-      "matches": [ "<all_urls>" ],
+      "matches": [
+        "<all_urls>"
+      ],
       "js": [
-        "styles.js",           
-        "ui-renderer.js",      
-        "history-manager.js",  
-        "content.js"           
+        "styles.js",
+        "ui-renderer.js",
+        "history-manager.js",
+        "content.js"
       ]
     }
   ],
@@ -55,10 +58,10 @@
       "description": "3. Mở Menu/Sổ tay (Click Icon)"
     },
     "cmd_reload_extension": {
-    "suggested_key": {
-      "default": "Alt+R",
-      "mac": "Alt+R"
-    },
+      "suggested_key": {
+        "default": "Alt+R",
+        "mac": "Alt+R"
+      },
       "description": " Reload Extension & Webpage"
     }
   }
