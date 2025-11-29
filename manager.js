@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedCountSpan = document.getElementById('selected-count');
   const btnExport = document.getElementById('btn-export');
   const btnGenerateExamples = document.getElementById('btn-generate-examples');
-  const btnReviewForgotten = document.getElementById('btn-review-forgotten'); // [NEW]
+  const btnReviewForgotten = document.getElementById('btn-review-forgotten');
 
   // Review Mode Elements
   const btnReview = document.getElementById('btn-review');
@@ -131,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function createCard(item, type) {
     const card = document.createElement('div');
     card.className = `card ${type}`;
-    // [NEW] Add status class
     if (item.status === 'forgot') {
       card.classList.add('status-forgot');
     }
@@ -142,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtitle = type === 'vocab' ? `(${item.reading || ''})` : '';
     const content = type === 'vocab' ? item.mean : item.explain;
 
-    // [NEW] Status Badge
     const statusBadge = item.status === 'forgot'
       ? `<span class="badge-forgot" title="Bạn đã quên từ này">🧠 Quên</span>`
       : '';
@@ -347,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // [NEW] Review Forgotten Button
   if (btnReviewForgotten) {
     btnReviewForgotten.onclick = () => {
       startReviewSession('forgotten');
@@ -361,7 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let combinedList = [...vocab, ...grammar];
 
-      // [NEW] Filter for Forgotten Mode
       if (mode === 'forgotten') {
         combinedList = combinedList.filter(item => item.status === 'forgot');
       }
@@ -378,7 +374,37 @@ document.addEventListener('DOMContentLoaded', () => {
       currentReviewIndex = 0;
 
       showReviewModal();
+      renderReviewList(); // [NEW] Render the sidebar list
       loadReviewCard(0);
+    });
+  }
+
+  // [NEW] Render Review List
+  function renderReviewList() {
+    const listContainer = document.getElementById('review-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    reviewQueue.forEach((item, index) => {
+      const li = document.createElement('li');
+      li.className = 'review-list-item';
+      if (index === currentReviewIndex) li.classList.add('active');
+      if (item.status === 'forgot') li.classList.add('forgot');
+
+      const title = item.type === 'vocab' ? item.word : item.structure;
+      const statusText = item.status === 'forgot' ? '<span class="item-status" style="background:#FF5722;color:white">Quên</span>' : '';
+
+      li.innerHTML = `
+            <span class="item-text" title="${title}">${title}</span>
+            ${statusText}
+        `;
+
+      li.onclick = () => {
+        currentReviewIndex = index;
+        loadReviewCard(index);
+      };
+
+      listContainer.appendChild(li);
     });
   }
 
@@ -399,6 +425,17 @@ document.addEventListener('DOMContentLoaded', () => {
       hideReviewModal();
       return;
     }
+
+    // [NEW] Update Active List Item
+    const listItems = document.querySelectorAll('.review-list-item');
+    listItems.forEach((li, idx) => {
+      if (idx === index) {
+        li.classList.add('active');
+        li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        li.classList.remove('active');
+      }
+    });
 
     const item = reviewQueue[index];
     const frontEl = document.getElementById('card-front-content');
@@ -459,13 +496,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = reviewQueue[currentReviewIndex];
       if (e.key === '1') updateItemStatus(item, 'forgot');
       if (e.key === '2') updateItemStatus(item, 'remember');
+
+      // [NEW] Update list item immediately
+      renderReviewList();
+
       handleNextCard();
     }
   });
 
   function handleNextCard() {
     currentReviewIndex++;
-    setTimeout(() => loadReviewCard(currentReviewIndex), 200);
+    // [NEW] Check bounds before loading
+    if (currentReviewIndex < reviewQueue.length) {
+      setTimeout(() => loadReviewCard(currentReviewIndex), 200);
+    } else {
+      setTimeout(() => loadReviewCard(currentReviewIndex), 200); // Will trigger finish alert
+    }
   }
 
   // [NEW] Update Status Logic
@@ -473,6 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     const item = reviewQueue[currentReviewIndex];
     updateItemStatus(item, 'forgot');
+    renderReviewList(); // Update UI
     handleNextCard();
   };
 
@@ -480,6 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     const item = reviewQueue[currentReviewIndex];
     updateItemStatus(item, 'remember');
+    renderReviewList(); // Update UI
     handleNextCard();
   };
 
@@ -516,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentReviewIndex = 0;
 
     showReviewModal();
+    renderReviewList(); // [NEW] Render list for date review too
     loadReviewCard(0);
   }
 
