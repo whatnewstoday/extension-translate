@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDeleteSelected = document.getElementById('btn-delete-selected');
   const selectedCountSpan = document.getElementById('selected-count');
   const btnExport = document.getElementById('btn-export');
+  const btnGenerateExamples = document.getElementById('btn-generate-examples'); // [NEW]
 
   // Review Mode Elements
   const btnReview = document.getElementById('btn-review');
@@ -35,6 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 2. INIT & NAVIGATION ---
   loadBothData();
+
+  // [NEW] Listen for vocab updates from background
+  chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === "vocabUpdated") {
+      loadBothData();
+    }
+  });
 
   if (btnSettings) {
     btnSettings.onclick = () => {
@@ -241,6 +249,48 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDeleteSelected.style.cursor = 'not-allowed';
       }
     }
+
+    // [NEW] Update Generate Button State
+    if (btnGenerateExamples) {
+      // Chỉ bật khi có chọn item và item đó là VOCAB (không phải grammar)
+      const hasVocabSelected = Array.from(checkedBoxes).some(cb => cb.dataset.type === 'vocab');
+      btnGenerateExamples.disabled = !hasVocabSelected;
+      btnGenerateExamples.style.opacity = hasVocabSelected ? '1' : '0.6';
+      btnGenerateExamples.style.cursor = hasVocabSelected ? 'pointer' : 'not-allowed';
+    }
+  }
+
+  // [NEW] Handle Generate Examples Click
+  if (btnGenerateExamples) {
+    btnGenerateExamples.onclick = () => {
+      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+      const words = Array.from(checkboxes)
+        .filter(cb => cb.dataset.type === 'vocab')
+        .map(cb => cb.value);
+
+      if (words.length === 0) return;
+
+      if (confirm(`Tạo ví dụ cho ${words.length} từ vựng đã chọn?`)) {
+        btnGenerateExamples.innerHTML = "⏳ Đang tạo...";
+        btnGenerateExamples.disabled = true;
+
+        chrome.runtime.sendMessage({
+          action: "forceGenerateExamples",
+          words: words
+        });
+
+        // Reset button after 2s (API runs in background)
+        setTimeout(() => {
+          btnGenerateExamples.innerHTML = "✨ Tạo ví dụ (AI)";
+          btnGenerateExamples.disabled = false;
+          alert("Đã gửi yêu cầu! Ví dụ sẽ tự động xuất hiện sau vài giây.");
+          if (selectAllCheckbox) selectAllCheckbox.checked = false;
+          // Uncheck all
+          checkboxes.forEach(cb => cb.checked = false);
+          updateDeleteButton();
+        }, 2000);
+      }
+    };
   }
 
   if (btnDeleteSelected) {
@@ -369,9 +419,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update Content
     if (item.type === 'vocab') {
       frontEl.innerHTML = `<div style="font-size:40px;">${item.word}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Từ vựng)</div>`;
+
+      // [NEW] Render Examples
+      let examplesHtml = '';
+      if (item.examples && item.examples.length > 0) {
+        examplesHtml = `<div class="examples-section">`;
+        item.examples.forEach(ex => {
+          examplesHtml += `
+            <div class="example-item">
+              <div class="example-jp">🇯🇵 ${ex.jp}</div>
+              <div class="example-vi">🇻🇳 ${ex.vi}</div>
+            </div>`;
+        });
+        examplesHtml += `</div>`;
+      }
+
       backEl.innerHTML = `
             <div style="font-size:24px; color:#81C784; margin-bottom:10px">${item.reading || ''}</div>
             <div style="font-size:18px;">${item.mean}</div>
+            ${examplesHtml}
         `;
     } else {
       frontEl.innerHTML = `<div style="font-size:32px;">${item.structure}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Ngữ pháp)</div>`;

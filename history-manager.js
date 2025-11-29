@@ -113,7 +113,16 @@ function deleteHistoryItem(itemId) {
 
 function saveVocabulary(obj, btn) {
   chrome.storage.local.get(['savedVocab'], r => {
-    let l = r.savedVocab || []; if (!l.some(i => i.word === obj.word)) { l.push({ ...obj, date: new Date().toISOString() }); chrome.storage.local.set({ savedVocab: l }, () => { btn.innerHTML = "✅"; btn.disabled = true; }); }
+    let l = r.savedVocab || [];
+    if (!l.some(i => i.word === obj.word)) {
+      l.push({ ...obj, date: new Date().toISOString() });
+      chrome.storage.local.set({ savedVocab: l }, () => {
+        btn.innerHTML = "✅";
+        btn.disabled = true;
+        // [NEW] Trigger Auto-Generate Examples
+        chrome.runtime.sendMessage({ action: "addToVocabQueue", word: obj.word }).catch(() => { });
+      });
+    }
   });
 }
 

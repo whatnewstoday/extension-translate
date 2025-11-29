@@ -658,3 +658,31 @@ input[type="checkbox"] {
     /* Màu tím rất nhạt */
     border-color: #673AB7;
 }
+
+/* [NEW] Examples Section in Flashcard */
+.examples-section {
+    margin-top: 15px;
+    border-top: 1px solid #4a4d52;
+    padding-top: 10px;
+    text-align: left;
+    width: 100%;
+}
+
+.example-item {
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.example-jp {
+    color: #81C784;
+    /* Light Green for JP on dark bg */
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.example-vi {
+    color: #ccc;
+    /* Light Grey for VI */
+    font-style: italic;
+}
