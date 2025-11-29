@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function createCard(item, type) {
     const card = document.createElement('div');
     card.className = `card ${type}`;
+    card.style.cursor = 'pointer';
 
     const idValue = type === 'vocab' ? item.word : item.structure;
     const title = type === 'vocab' ? item.word : item.structure;
@@ -152,23 +153,41 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
+    card.addEventListener('click', () => {
+      if (window.getSelection().toString().length > 0) return;
+      if (e.target.closest('.btn-speak') || e.target.closest('.delete-btn-mini') || e.target.closest('checkbox')) {
+        return;
+      }
+
+      const checkbox = card.querySelector('.item-checkbox');
+      if (checkbox) checkbox.click();
+    });
     // --- SỰ KIỆN QUAN TRỌNG ---
 
-    // 1. Khi tick vào checkbox -> Cập nhật trạng thái nút xóa tổng
+    // Khi tick vào checkbox -> Cập nhật trạng thái nút xóa tổng
     const checkbox = card.querySelector('.item-checkbox');
     checkbox.addEventListener('change', () => {
       updateDeleteButton(); // Gọi hàm cập nhật nút xóa
+
+      //doi mau nen card khi duoc chon
+      if (checkbox.checked) {
+        card.style.backgroundColor = '#f3e5f5'; //mau nen khi chon
+        card.style.borderColor = '673AB7';
+      } else {
+        card.style.backgroundColor = ''; //tra ve mac dinh
+        card.style.borderColor = '';
+      }
     });
 
-    // 2. Nút Loa
+    // Nút Loa
     card.querySelector('.btn-speak').onclick = (e) => {
       e.stopPropagation();
       speakJapanese(title);
     };
 
-    // 3. Nút Xóa nhỏ (Xóa lẻ)
+    // Nút Xóa nhỏ (Xóa lẻ)
     card.querySelector('.delete-btn-mini').onclick = (e) => {
-      e.stopPropagation();
+      e.stopPropagation(); //chan su kien click len card cha
       if (confirm(`Xóa mục: "${title}"?`)) {
         deleteItems([{ type: type, id: idValue }]);
       }
