@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDeleteSelected = document.getElementById('btn-delete-selected');
   const selectedCountSpan = document.getElementById('selected-count');
   const btnExport = document.getElementById('btn-export');
-  const btnGenerateExamples = document.getElementById('btn-generate-examples'); // [NEW]
+  const btnGenerateExamples = document.getElementById('btn-generate-examples');
+  const btnReviewForgotten = document.getElementById('btn-review-forgotten'); // [NEW]
 
   // Review Mode Elements
   const btnReview = document.getElementById('btn-review');
@@ -37,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 2. INIT & NAVIGATION ---
   loadBothData();
 
-  // [NEW] Listen for vocab updates from background
+  // Listen for vocab updates from background
   chrome.runtime.onMessage.addListener((request) => {
     if (request.action === "vocabUpdated") {
       loadBothData();
@@ -65,11 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showMainView() {
     currentView = 'main';
-    mainView.style.display = 'grid'; // Grid layout cho 2 cột
+    mainView.style.display = 'grid';
     actionBar.style.display = 'flex';
     settingsView.style.display = 'none';
     btnSettings.textContent = '⚙️ Cài đặt API';
-    loadBothData(); // Reload data khi quay lại
+    loadBothData();
   }
 
   // --- 3. DATA LOADING & RENDERING ---
@@ -78,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const vocabList = result.savedVocab || [];
       const grammarList = result.savedGrammar || [];
 
-      // Update counts
       if (vocabCountSpan) vocabCountSpan.textContent = vocabList.length;
       if (grammarCountSpan) grammarCountSpan.textContent = grammarList.length;
 
@@ -98,16 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 1. Gom nhóm theo ngày
     const groupedData = groupByDate(list);
 
-    // 2. Render từng nhóm
     groupedData.forEach(([dateKey, items]) => {
-      // Tạo container cho nhóm ngày
       const dateSection = document.createElement('div');
       dateSection.className = 'date-section';
 
-      // Tạo Header ngày + Nút ôn tập riêng cho ngày đó
       const dateHeader = document.createElement('div');
       dateHeader.className = 'date-header';
       dateHeader.innerHTML = `
@@ -117,16 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
         `;
 
-      // Gắn sự kiện cho nút ôn tập ngày
       dateHeader.querySelector('.btn-review-date').onclick = () => {
-        startReviewByDate(items, type); // Hàm mới sẽ viết ở dưới
+        startReviewByDate(items, type);
       };
 
       dateSection.appendChild(dateHeader);
 
-      // Render các thẻ Card bên trong nhóm này
       items.forEach(item => {
-        const card = createCard(item, type); // Tách hàm tạo card ra cho gọn
+        const card = createCard(item, type);
         dateSection.appendChild(card);
       });
 
@@ -134,11 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Hàm phụ tạo HTML cho Card (Tách ra từ code cũ của bạn)
-  // Hàm tạo thẻ Card (Đã fix lỗi sự kiện)
   function createCard(item, type) {
     const card = document.createElement('div');
     card.className = `card ${type}`;
+    // [NEW] Add status class
+    if (item.status === 'forgot') {
+      card.classList.add('status-forgot');
+    }
     card.style.cursor = 'pointer';
 
     const idValue = type === 'vocab' ? item.word : item.structure;
@@ -146,10 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtitle = type === 'vocab' ? `(${item.reading || ''})` : '';
     const content = type === 'vocab' ? item.mean : item.explain;
 
+    // [NEW] Status Badge
+    const statusBadge = item.status === 'forgot'
+      ? `<span class="badge-forgot" title="Bạn đã quên từ này">🧠 Quên</span>`
+      : '';
+
     card.innerHTML = `
         <div class="card-top">
             <input type="checkbox" class="item-checkbox" value="${idValue}" data-type="${type}">
-            
+            ${statusBadge}
             <div class="card-actions">
                 <span class="btn-speak" title="Nghe">🔊</span>
                 <button class="delete-btn-mini" title="Xóa">🗑️</button>
@@ -161,44 +162,34 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-    // --- CLICK TO SELECT (NEW) ---
     card.addEventListener('click', (e) => {
       if (window.getSelection().toString().length > 0) return;
-      // Prevent triggering if clicked on specific interactive elements
       if (e.target.closest('.btn-speak') || e.target.closest('.delete-btn-mini') || e.target.closest('.item-checkbox')) {
         return;
       }
-
       const checkbox = card.querySelector('.item-checkbox');
       if (checkbox) checkbox.click();
     });
 
-    // --- SỰ KIỆN QUAN TRỌNG ---
-
-    // Khi tick vào checkbox -> Cập nhật trạng thái nút xóa tổng
     const checkbox = card.querySelector('.item-checkbox');
     checkbox.addEventListener('change', () => {
-      updateDeleteButton(); // Gọi hàm cập nhật nút xóa
-
-      //doi mau nen card khi duoc chon
+      updateDeleteButton();
       if (checkbox.checked) {
-        card.style.backgroundColor = '#f3e5f5'; //mau nen khi chon
+        card.style.backgroundColor = '#f3e5f5';
         card.style.borderColor = '#673AB7';
       } else {
-        card.style.backgroundColor = ''; //tra ve mac dinh
+        card.style.backgroundColor = '';
         card.style.borderColor = '';
       }
     });
 
-    // Nút Loa
     card.querySelector('.btn-speak').onclick = (e) => {
       e.stopPropagation();
       speakJapanese(title);
     };
 
-    // Nút Xóa nhỏ (Xóa lẻ)
     card.querySelector('.delete-btn-mini').onclick = (e) => {
-      e.stopPropagation(); //chan su kien click len card cha
+      e.stopPropagation();
       if (confirm(`Xóa mục: "${title}"?`)) {
         deleteItems([{ type: type, id: idValue }]);
       }
@@ -207,40 +198,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
-  // --- 4. BULK ACTIONS (DELETE, EXPORT) ---
+  // --- 4. BULK ACTIONS ---
 
   if (selectAllCheckbox) {
     selectAllCheckbox.onchange = () => {
-      // Tìm tất cả checkbox bài học (vocab hoặc grammar)
       const allCheckboxes = document.querySelectorAll('.item-checkbox');
-
-      // Đặt trạng thái của chúng giống hệt nút "Chọn tất cả"
       allCheckboxes.forEach(cb => {
         cb.checked = selectAllCheckbox.checked;
       });
-
-      // Cập nhật lại nút xóa
       updateDeleteButton();
     };
   }
 
-  // Hàm cập nhật trạng thái nút "Xóa đã chọn"
   function updateDeleteButton() {
-    // Tìm tất cả checkbox đang được tick
     const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
     const count = checkedBoxes.length;
-
-    // Cập nhật số lượng lên giao diện
     const selectedCountSpan = document.getElementById('selected-count');
     const btnDeleteSelected = document.getElementById('btn-delete-selected');
 
     if (selectedCountSpan) selectedCountSpan.textContent = count;
 
-    // Nếu có ít nhất 1 cái được chọn thì bật nút xóa, ngược lại thì tắt
     if (btnDeleteSelected) {
       btnDeleteSelected.disabled = count === 0;
-
-      // Thêm chút hiệu ứng visual (tùy chọn)
       if (count > 0) {
         btnDeleteSelected.style.opacity = '1';
         btnDeleteSelected.style.cursor = 'pointer';
@@ -250,9 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // [NEW] Update Generate Button State
     if (btnGenerateExamples) {
-      // Chỉ bật khi có chọn item và item đó là VOCAB (không phải grammar)
       const hasVocabSelected = Array.from(checkedBoxes).some(cb => cb.dataset.type === 'vocab');
       btnGenerateExamples.disabled = !hasVocabSelected;
       btnGenerateExamples.style.opacity = hasVocabSelected ? '1' : '0.6';
@@ -260,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // [NEW] Handle Generate Examples Click
   if (btnGenerateExamples) {
     btnGenerateExamples.onclick = () => {
       const checkboxes = document.querySelectorAll('.item-checkbox:checked');
@@ -279,13 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
           words: words
         });
 
-        // Reset button after 2s (API runs in background)
         setTimeout(() => {
           btnGenerateExamples.innerHTML = "✨ Tạo ví dụ (AI)";
           btnGenerateExamples.disabled = false;
           alert("Đã gửi yêu cầu! Ví dụ sẽ tự động xuất hiện sau vài giây.");
           if (selectAllCheckbox) selectAllCheckbox.checked = false;
-          // Uncheck all
           checkboxes.forEach(cb => cb.checked = false);
           updateDeleteButton();
         }, 2000);
@@ -330,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Export CSV Logic
   if (btnExport) {
     btnExport.onclick = () => {
       chrome.storage.local.get(['savedVocab', 'savedGrammar'], (result) => {
@@ -341,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alert("Danh sách trống!"); return;
         }
 
-        let csvContent = "\uFEFFType,Front,Back,Tags\n"; // Header for Anki
+        let csvContent = "\uFEFFType,Front,Back,Tags\n";
 
         vocab.forEach(item => {
           const front = `"${(item.word || '').replace(/"/g, '""')}"`;
@@ -367,29 +340,46 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // --- 5. REVIEW MODE LOGIC (FIXED) ---
+  // --- 5. REVIEW MODE LOGIC ---
   if (btnReview) {
     btnReview.onclick = () => {
-      chrome.storage.local.get(['savedVocab', 'savedGrammar'], (result) => {
-        const vocab = (result.savedVocab || []).map(i => ({ ...i, type: 'vocab' }));
-        const grammar = (result.savedGrammar || []).map(i => ({ ...i, type: 'grammar' }));
-
-        // Gộp chung 2 danh sách để ôn tập
-        let combinedList = [...vocab, ...grammar];
-
-        if (combinedList.length === 0) {
-          alert("Bạn chưa lưu từ vựng hay ngữ pháp nào để ôn tập!");
-          return;
-        }
-
-        // Shuffle
-        reviewQueue = combinedList.sort(() => Math.random() - 0.5);
-        currentReviewIndex = 0;
-
-        showReviewModal();
-        loadReviewCard(0);
-      });
+      startReviewSession('all');
     };
+  }
+
+  // [NEW] Review Forgotten Button
+  if (btnReviewForgotten) {
+    btnReviewForgotten.onclick = () => {
+      startReviewSession('forgotten');
+    };
+  }
+
+  function startReviewSession(mode) {
+    chrome.storage.local.get(['savedVocab', 'savedGrammar'], (result) => {
+      const vocab = (result.savedVocab || []).map(i => ({ ...i, type: 'vocab' }));
+      const grammar = (result.savedGrammar || []).map(i => ({ ...i, type: 'grammar' }));
+
+      let combinedList = [...vocab, ...grammar];
+
+      // [NEW] Filter for Forgotten Mode
+      if (mode === 'forgotten') {
+        combinedList = combinedList.filter(item => item.status === 'forgot');
+      }
+
+      if (combinedList.length === 0) {
+        const msg = mode === 'forgotten'
+          ? "Bạn không có từ nào trong danh sách 'Quên'!"
+          : "Bạn chưa lưu từ vựng hay ngữ pháp nào để ôn tập!";
+        alert(msg);
+        return;
+      }
+
+      reviewQueue = combinedList.sort(() => Math.random() - 0.5);
+      currentReviewIndex = 0;
+
+      showReviewModal();
+      loadReviewCard(0);
+    });
   }
 
   function showReviewModal() {
@@ -398,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function hideReviewModal() {
     if (reviewModal) reviewModal.classList.add('hidden');
+    loadBothData(); // Reload list to show status updates
   }
 
   if (btnCloseReview) btnCloseReview.onclick = hideReviewModal;
@@ -413,14 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const frontEl = document.getElementById('card-front-content');
     const backEl = document.getElementById('card-back-content');
 
-    // Reset Flip
     if (flashcard) flashcard.classList.remove('is-flipped');
 
-    // Update Content
     if (item.type === 'vocab') {
       frontEl.innerHTML = `<div style="font-size:40px;">${item.word}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Từ vựng)</div>`;
 
-      // [NEW] Render Examples
       let examplesHtml = '';
       if (item.examples && item.examples.length > 0) {
         examplesHtml = `<div class="examples-section">`;
@@ -446,7 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (reviewProgress) reviewProgress.textContent = `${index + 1} / ${reviewQueue.length}`;
 
-    // Update Audio Button Logic
     if (reviewAudioBtn) {
       reviewAudioBtn.onclick = (e) => {
         e.stopPropagation();
@@ -456,12 +443,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Card Flip Logic
   if (flashcard) {
     flashcard.onclick = () => flashcard.classList.toggle('is-flipped');
   }
 
-  // Keyboard Shortcuts for Review
   document.addEventListener('keydown', (e) => {
     if (!reviewModal || reviewModal.classList.contains('hidden')) return;
 
@@ -470,6 +455,10 @@ document.addEventListener('DOMContentLoaded', () => {
       flashcard.classList.toggle('is-flipped');
     }
     if (e.key === '1' || e.key === '2') {
+      // 1: Forgot, 2: Remember
+      const item = reviewQueue[currentReviewIndex];
+      if (e.key === '1') updateItemStatus(item, 'forgot');
+      if (e.key === '2') updateItemStatus(item, 'remember');
       handleNextCard();
     }
   });
@@ -479,29 +468,58 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => loadReviewCard(currentReviewIndex), 200);
   }
 
-  if (btnForgot) btnForgot.onclick = (e) => { e.stopPropagation(); handleNextCard(); };
-  if (btnRemember) btnRemember.onclick = (e) => { e.stopPropagation(); handleNextCard(); };
+  // [NEW] Update Status Logic
+  if (btnForgot) btnForgot.onclick = (e) => {
+    e.stopPropagation();
+    const item = reviewQueue[currentReviewIndex];
+    updateItemStatus(item, 'forgot');
+    handleNextCard();
+  };
 
-  // Hàm bắt đầu ôn tập cho một danh sách cụ thể (theo ngày)
+  if (btnRemember) btnRemember.onclick = (e) => {
+    e.stopPropagation();
+    const item = reviewQueue[currentReviewIndex];
+    updateItemStatus(item, 'remember');
+    handleNextCard();
+  };
+
+  function updateItemStatus(item, status) {
+    chrome.storage.local.get(['savedVocab', 'savedGrammar'], (result) => {
+      let vocabList = result.savedVocab || [];
+      let grammarList = result.savedGrammar || [];
+
+      if (item.type === 'vocab') {
+        const index = vocabList.findIndex(v => v.word === item.word);
+        if (index !== -1) {
+          vocabList[index].status = status;
+        }
+      } else {
+        const index = grammarList.findIndex(g => g.structure === item.structure);
+        if (index !== -1) {
+          grammarList[index].status = status;
+        }
+      }
+
+      chrome.storage.local.set({ savedVocab: vocabList, savedGrammar: grammarList });
+    });
+  }
+
   function startReviewByDate(items, type) {
-    // Chuyển đổi format items để phù hợp với flashcard
     const formattedItems = items.map(item => ({
       ...item,
-      type: type // Gán cứng loại (vocab/grammar) để flashcard hiển thị đúng
+      type: type
     }));
 
     if (formattedItems.length === 0) return;
 
-    // Set hàng đợi ôn tập
-    reviewQueue = formattedItems; // Không cần shuffle nếu muốn ôn theo thứ tự, hoặc shuffle tùy bạn
+    reviewQueue = formattedItems;
     currentReviewIndex = 0;
 
-    // Mở Modal
     showReviewModal();
     loadReviewCard(0);
   }
 
-  // --- 6. UTILS & SETTINGS RENDER ---
+  // --- 6. UTILS & SETTINGS ---
   function speakJapanese(text) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -513,10 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.speechSynthesis.speak(utterance);
   }
 
-  // Render Settings View Logic (Giữ nguyên logic của bạn nhưng bọc trong hàm renderSettings)
   function renderSettings() {
-    // ... (Code render settings giữ nguyên như cũ của bạn, đã rất ổn) ...
-    // Copy phần logic renderSettings cũ vào đây để code gọn
     chrome.storage.local.get(['geminiApiKey'], (result) => {
       const currentKey = result.geminiApiKey || '';
       const maskedKey = currentKey ? currentKey.substring(0, 10) + '...' + currentKey.substring(currentKey.length - 4) : 'Chưa thiết lập';
@@ -544,22 +559,18 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     });
   }
-  // Hàm gom nhóm danh sách theo ngày
+
   function groupByDate(list) {
     const groups = {};
 
     list.forEach(item => {
-      // Nếu item không có date, gán vào ngày hiện tại hoặc "Unknown"
       const dateStr = item.date ? item.date.split('T')[0] : 'unknown';
-
       if (!groups[dateStr]) {
         groups[dateStr] = [];
       }
       groups[dateStr].push(item);
     });
 
-    // Sắp xếp các nhóm ngày giảm dần (Mới nhất lên đầu)
-    // Object.entries trả về mảng [[key, val], [key, val]]
     return Object.entries(groups).sort((a, b) => {
       if (a[0] === 'unknown') return 1;
       if (b[0] === 'unknown') return -1;
@@ -567,7 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Hàm format ngày cho đẹp (VD: Hôm nay, Hôm qua, 28/11/2025)
   function formatDateDisplay(dateStr) {
     if (dateStr === 'unknown') return 'Không xác định';
 

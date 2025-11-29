@@ -686,3 +686,21 @@ input[type="checkbox"] {
     /* Light Grey for VI */
     font-style: italic;
 }
+
+/* [NEW] Forgot Status Styles */
+.card.status-forgot {
+    border-left-color: #FF5722 !important;
+    /* Orange/Red border */
+    background-color: #fff3e0;
+}
+
+.badge-forgot {
+    background: #FF5722;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+    vertical-align: middle;
+    font-weight: bold;
+}
