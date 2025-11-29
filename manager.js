@@ -153,15 +153,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-    card.addEventListener('click', () => {
+    // --- CLICK TO SELECT (NEW) ---
+    card.addEventListener('click', (e) => {
       if (window.getSelection().toString().length > 0) return;
-      if (e.target.closest('.btn-speak') || e.target.closest('.delete-btn-mini') || e.target.closest('checkbox')) {
+      // Prevent triggering if clicked on specific interactive elements
+      if (e.target.closest('.btn-speak') || e.target.closest('.delete-btn-mini') || e.target.closest('.item-checkbox')) {
         return;
       }
 
       const checkbox = card.querySelector('.item-checkbox');
       if (checkbox) checkbox.click();
     });
+
     // --- SỰ KIỆN QUAN TRỌNG ---
 
     // Khi tick vào checkbox -> Cập nhật trạng thái nút xóa tổng
@@ -172,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
       //doi mau nen card khi duoc chon
       if (checkbox.checked) {
         card.style.backgroundColor = '#f3e5f5'; //mau nen khi chon
-        card.style.borderColor = '673AB7';
+        card.style.borderColor = '#673AB7';
       } else {
         card.style.backgroundColor = ''; //tra ve mac dinh
         card.style.borderColor = '';
