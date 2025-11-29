@@ -510,7 +510,7 @@ input[type="checkbox"] {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* justify-content: center; Removed to fix overlap */
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     padding: 20px;
     text-align: center;
@@ -518,6 +518,11 @@ input[type="checkbox"] {
     /* Fix padding causing overflow */
     overflow-y: auto;
     /* Handle long content */
+}
+
+.card-face .card-content {
+    margin: auto 0;
+    width: 100%;
 }
 
 .card-front {
