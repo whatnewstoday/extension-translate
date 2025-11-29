@@ -787,6 +787,201 @@ input[type="checkbox"] {
 
 .badge-forgot {
     background: #FF5722;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* justify-content: center; Removed to fix overlap */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    text-align: center;
+    box-sizing: border-box;
+    /* Fix padding causing overflow */
+    overflow-y: auto;
+    /* Handle long content */
+}
+
+.card-face .card-content {
+    margin: auto 0;
+    width: 100%;
+}
+
+.card-front {
+    background: #ffffff;
+    color: #333;
+}
+
+.card-back {
+    background: #252830;
+    color: #fff;
+    transform: rotateY(180deg);
+    /* Mặt sau mặc định quay ngược */
+    border: 1px solid #4a4d52;
+}
+
+#card-front-content {
+    font-size: 40px;
+    font-weight: bold;
+    color: #212121;
+}
+
+#card-back-content {
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.card-hint {
+    font-size: 12px;
+    color: #999;
+    margin-top: 20px;
+    position: absolute;
+    bottom: 15px;
+}
+
+/* Nút Audio ở mặt sau */
+.audio-btn {
+    margin-top: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #555;
+    color: #4CAF50;
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.audio-btn:hover {
+    background: #4CAF50;
+    color: #fff;
+}
+
+/* Action Buttons */
+.review-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+.btn-forgot {
+    background: #ff5252;
+    color: white;
+}
+
+/* Đỏ */
+.btn-remember {
+    background: #4CAF50;
+    color: white;
+}
+
+/* Xanh */
+
+/* [MỚI] DATE GROUP STYLES */
+.date-section {
+    margin-bottom: 25px;
+}
+
+.date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #673AB7;
+    /* Màu tím chủ đạo */
+}
+
+.date-title {
+    font-weight: bold;
+    color: #444;
+    font-size: 14px;
+}
+
+.btn-review-date {
+    background: #fff;
+    border: 1px solid #673AB7;
+    color: #673AB7;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-review-date:hover {
+    background: #673AB7;
+    color: #fff;
+}
+
+/* Khi hover vào card, đổi màu viền nhẹ để biết đang focus */
+.card:hover {
+    border-color: #673AB7;
+    /* Màu tím chủ đạo */
+    background-color: #fcfcfc;
+}
+
+/* Khi checkbox được chọn, đổi màu nền card để dễ nhận biết */
+.card:has(.item-checkbox:checked) {
+    background-color: #f3e5f5;
+    /* Màu tím rất nhạt */
+    border-color: #673AB7;
+}
+
+/* [NEW] Examples Section in Flashcard */
+.examples-section {
+    margin-top: 15px;
+    border-top: 1px solid #4a4d52;
+    padding-top: 10px;
+    text-align: left;
+    width: 100%;
+}
+
+.example-item {
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.example-jp {
+    color: #81C784;
+    /* Light Green for JP on dark bg */
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.example-vi {
+    color: #ccc;
+    /* Light Grey for VI */
+    font-style: italic;
+}
+
+/* [NEW] Forgot Status Styles */
+.card.status-forgot {
+    border-left-color: #FF5722 !important;
+    /* Orange/Red border */
+    background-color: #fff3e0;
+}
+
+.badge-forgot {
+    background: #FF5722;
     color: white;
     font-size: 10px;
     padding: 2px 6px;
@@ -794,4 +989,51 @@ input[type="checkbox"] {
     margin-left: 5px;
     vertical-align: middle;
     font-weight: bold;
+}
+
+/* [NEW] Dropdown Styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.btn-dropdown-trigger {
+    background: #FF9800;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 5px;
 }

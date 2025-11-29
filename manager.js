@@ -108,14 +108,33 @@ document.addEventListener('DOMContentLoaded', () => {
       dateHeader.className = 'date-header';
       dateHeader.innerHTML = `
             <span class="date-title">${formatDateDisplay(dateKey)} (${items.length})</span>
-            <button class="btn-review-date" title="Chỉ ôn tập các từ của ngày này">
-                ▶️ Ôn ngày này
-            </button>
+            <div style="display:flex; align-items:center;">
+                <button class="btn-review-date" title="Ôn tập các từ của ngày này">
+                    ▶️ Day Card
+                </button>
+                <div class="dropdown">
+                    <button class="btn-dropdown-trigger">📝 Kiểm tra ▼</button>
+                    <div class="dropdown-content">
+                        <a data-action="quiz-meaning">📖 Từ vựng</a>
+                        <a data-action="quiz-reading">🗣️ Cách đọc</a>
+                    </div>
+                </div>
+            </div>
         `;
 
       dateHeader.querySelector('.btn-review-date').onclick = () => {
         startReviewByDate(items, type);
       };
+
+      // Dropdown Actions
+      const dropdownContent = dateHeader.querySelector('.dropdown-content');
+      dropdownContent.querySelectorAll('a').forEach(link => {
+        link.onclick = (e) => {
+          const action = e.target.dataset.action;
+          if (action === 'quiz-meaning') startQuiz(items, type, 'meaning');
+          if (action === 'quiz-reading') startQuiz(items, type, 'reading');
+        };
+      });
 
       dateSection.appendChild(dateHeader);
 
@@ -379,6 +398,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // [NEW] Quiz Logic
+  let currentQuizType = null; // 'meaning' or 'reading'
+
+  function startQuiz(items, type, quizType) {
+    // Filter: Only remembered items (not forgot)
+    let quizItems = items.filter(item => item.status !== 'forgot');
+
+    if (quizType === 'reading') {
+      // Filter: Only items with Kanji (simple regex check)
+      const kanjiRegex = /[\u4e00-\u9faf]/;
+      quizItems = quizItems.filter(item => {
+        const text = type === 'vocab' ? item.word : item.structure;
+        return kanjiRegex.test(text);
+      });
+    }
+
+    if (quizItems.length === 0) {
+      alert(quizType === 'reading'
+        ? "Không có từ Kanji nào đã nhớ trong ngày này!"
+        : "Không có từ nào đã nhớ trong ngày này!");
+      return;
+    }
+
+    currentQuizType = quizType;
+
+    // Setup Review Queue
+    const formattedItems = quizItems.map(item => ({ ...item, type: type }));
+    reviewQueue = formattedItems.sort(() => Math.random() - 0.5);
+    currentReviewIndex = 0;
+
+    showReviewModal();
+    renderReviewList();
+    loadReviewCard(0);
+  }
+
   // [NEW] Render Review List
   function renderReviewList() {
     const listContainer = document.getElementById('review-list');
@@ -414,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function hideReviewModal() {
     if (reviewModal) reviewModal.classList.add('hidden');
+    currentQuizType = null; // Reset quiz type
     loadBothData(); // Reload list to show status updates
   }
 
@@ -421,8 +476,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function loadReviewCard(index) {
     if (index >= reviewQueue.length) {
-      alert("🎉 Chúc mừng! Bạn đã hoàn thành bài ôn tập.");
+      alert("🎉 Chúc mừng! Bạn đã hoàn thành bài kiểm tra.");
       hideReviewModal();
+      currentQuizType = null; // Reset
       return;
     }
 
@@ -443,8 +499,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (flashcard) flashcard.classList.remove('is-flipped');
 
+    // CONTENT LOGIC BASED ON QUIZ TYPE
     if (item.type === 'vocab') {
-      frontEl.innerHTML = `<div style="font-size:40px;">${item.word}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Từ vựng)</div>`;
+      let frontText = item.word;
+      let backText = `
+        <div style="font-size:24px; color:#81C784; margin-bottom:10px">${item.reading || ''}</div>
+        <div style="font-size:18px;">${item.mean}</div>
+      `;
+
+      if (currentQuizType === 'reading') {
+        // Reading Mode: Front = Kanji, Back = Reading (Highlighted) + Meaning
+        frontText = item.word; // Kanji
+        backText = `
+            <div style="font-size:32px; color:#FF9800; font-weight:bold; margin-bottom:15px">${item.reading || ''}</div>
+            <div style="font-size:18px;">${item.mean}</div>
+          `;
+      } else if (currentQuizType === 'meaning') {
+        // Meaning Mode: Front = Word, Back = Meaning + Reading
+        // (Default behavior, but explicit here)
+      }
+
+      frontEl.innerHTML = `<div style="font-size:40px;">${frontText}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Từ vựng)</div>`;
 
       let examplesHtml = '';
       if (item.examples && item.examples.length > 0) {
@@ -459,12 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
         examplesHtml += `</div>`;
       }
 
-      backEl.innerHTML = `
-            <div style="font-size:24px; color:#81C784; margin-bottom:10px">${item.reading || ''}</div>
-            <div style="font-size:18px;">${item.mean}</div>
-            ${examplesHtml}
-        `;
+      backEl.innerHTML = backText + examplesHtml;
+
     } else {
+      // Grammar (Only Meaning Mode usually, but handle generic)
       frontEl.innerHTML = `<div style="font-size:32px;">${item.structure}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Ngữ pháp)</div>`;
       backEl.innerHTML = `<div style="font-size:16px; text-align:left;">${item.explain}</div>`;
     }
