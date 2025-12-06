@@ -114,7 +114,17 @@ function deleteHistoryItem(itemId) {
 function saveVocabulary(obj, btn) {
   chrome.storage.local.get(['savedVocab'], r => {
     let l = r.savedVocab || [];
-    if (!l.some(i => i.word === obj.word)) {
+    // Lấy ngày hôm nay (chỉ phần date, không có time)
+    const today = new Date().toISOString().split('T')[0];
+    // Kiểm tra xem từ vựng đã có trong ngày hôm nay chưa
+    const existsToday = l.some(i => {
+      if (i.word !== obj.word) return false;
+      // So sánh phần date (không có time)
+      const itemDate = i.date ? i.date.split('T')[0] : '';
+      return itemDate === today;
+    });
+    
+    if (!existsToday) {
       l.push({ ...obj, date: new Date().toISOString() });
       chrome.storage.local.set({ savedVocab: l }, () => {
         btn.innerHTML = "✅";
