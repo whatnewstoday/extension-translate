@@ -77,133 +77,52 @@
           <button id="btn-save-key" class="btn-success">Lưu cài đặt</button>
           <button id="btn-back-settings" class="btn-secondary">Quay lại</button>
         </div>
-        <!DOCTYPE html>
-        <html lang="vi">
+      </div>
+    </div>
 
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Sổ tay từ vựng Gemini</title>
-          <link rel="stylesheet" href="manager.css">
-        </head>
+  </div>
 
-        <body>
-          <div class="container">
+  <div id="review-modal" class="modal hidden">
+    <div class="review-container">
+      <!-- Sidebar List -->
+      <div class="review-sidebar">
+        <h3 class="sidebar-title">Danh sách thẻ</h3>
+        <ul id="review-list" class="review-list">
+          <!-- Items will be injected here -->
+        </ul>
+      </div>
 
-            <header>
-              <h1>🇯🇵 Sổ tay học tập</h1>
-              <div class="tabs">
-                <button id="btn-settings" class="tab-btn">⚙️ Cài đặt API</button>
+      <!-- Main Content -->
+      <div class="review-main">
+        <div class="review-header">
+          <span id="review-progress">0 / 0</span>
+          <button id="close-review" class="close-btn">&times;</button>
+        </div>
+
+        <div class="flashcard-scene">
+          <div class="flashcard" id="flashcard">
+            <div class="card-face card-front">
+              <div class="card-content" id="card-front-content">
               </div>
-            </header>
-
-            <div id="action-bar" class="action-bar-global">
-              <div class="select-all-wrapper">
-                <input type="checkbox" id="select-all-checkbox">
-                <label for="select-all-checkbox">Chọn tất cả</label>
-              </div>
-
-              <div class="action-buttons-group">
-                <button id="btn-generate-examples" class="btn-primary" disabled
-                  style="background-color: #673AB7; color: white; margin-right: 5px;">
-                  ✨ Tạo ví dụ (AI)
-                </button>
-                <button id="btn-delete-selected" class="btn-danger" disabled>
-                  Xóa (<span id="selected-count">0</span>)
-                </button>
-                <button id="btn-export" class="btn-success">
-                  📥 Xuất CSV
-                </button>
-                <button id="btn-review" class="btn-review">
-                  🃏 Ôn tập
-                </button>
-                <button id="btn-review-forgotten" class="btn-review"
-                  style="background-color: #FF9800; margin-left: 5px;">
-                  🧠 Ôn từ quên
-                </button>
-              </div>
+              <div class="card-hint">Bấm phím Space để lật</div>
             </div>
-
-            <div id="main-view">
-              <div class="column vocab-column">
-                <div class="column-header">
-                  <h2>📚 Từ vựng</h2>
-                  <span class="count-badge" id="vocab-count">0</span>
-                </div>
-                <div id="vocab-content" class="content-list">
-                </div>
+            <div class="card-face card-back">
+              <div class="card-content" id="card-back-content">
               </div>
-
-              <div class="column grammar-column">
-                <div class="column-header">
-                  <h2>📝 Ngữ pháp</h2>
-                  <span class="count-badge" id="grammar-count">0</span>
-                </div>
-                <div id="grammar-content" class="content-list">
-                </div>
-              </div>
-            </div>
-
-            <div id="settings-view" class="hidden">
-              <div class="settings-card">
-                <h2>Cài đặt kết nối</h2>
-                <div class="form-group">
-                  <label>Google Gemini API Key:</label>
-                  <input type="password" id="api-key-input" placeholder="Dán API Key của bạn vào đây...">
-                  <p class="hint">Chưa có key? <a href="https://aistudio.google.com/app/apikey" target="_blank">Lấy miễn
-                      phí tại
-                      đây</a></p>
-                </div>
-                <div class="settings-actions">
-                  <button id="btn-save-key" class="btn-success">Lưu cài đặt</button>
-                  <button id="btn-back-settings" class="btn-secondary">Quay lại</button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <div id="review-modal" class="modal hidden">
-            <div class="review-container">
-              <!-- Sidebar List -->
-              <div class="review-sidebar">
-                <h3 class="sidebar-title">Danh sách thẻ</h3>
-                <ul id="review-list" class="review-list">
-                  <!-- Items will be injected here -->
-                </ul>
-              </div>
-
-              <!-- Main Content -->
-              <div class="review-main">
-                <div class="review-header">
-                  <span id="review-progress">0 / 0</span>
-                  <button id="close-review" class="close-btn">&times;</button>
-                </div>
-
-                <div class="flashcard-scene">
-                  <div class="flashcard" id="flashcard">
-                    <div class="card-face card-front">
-                      <div class="card-content" id="card-front-content">
-                      </div>
-                      <div class="card-hint">Bấm phím Space để lật</div>
-                    </div>
-                    <div class="card-face card-back">
-                      <div class="card-content" id="card-back-content">
-                      </div>
-                      <button class="audio-btn" id="review-audio-btn">🔊 Nghe</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="review-actions">
-                  <button id="btn-forgot" class="action-btn btn-forgot">Quên (1)</button>
-                  <button id="btn-remember" class="action-btn btn-remember">Đã nhớ (2)</button>
-                </div>
-              </div>
+              <button class="audio-btn" id="review-audio-btn">🔊 Nghe</button>
             </div>
           </div>
+        </div>
 
-          <script src="manager.js"></script>
-        </body>
+        <div class="review-actions">
+          <button id="btn-forgot" class="action-btn btn-forgot">Quên (1)</button>
+          <button id="btn-remember" class="action-btn btn-remember">Đã nhớ (2)</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        </html>
+  <script src="manager.js"></script>
+</body>
+
+</html>
