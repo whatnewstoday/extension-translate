@@ -129,8 +129,6 @@ function saveVocabulary(obj, btn) {
       chrome.storage.local.set({ savedVocab: l }, () => {
         btn.innerHTML = "✅";
         btn.disabled = true;
-        // [NEW] Trigger Auto-Generate Examples
-        chrome.runtime.sendMessage({ action: "addToVocabQueue", word: obj.word }).catch(() => { });
       });
     }
   });

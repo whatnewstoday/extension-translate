@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDeleteSelected = document.getElementById('btn-delete-selected');
   const selectedCountSpan = document.getElementById('selected-count');
   const btnExport = document.getElementById('btn-export');
-  const btnGenerateExamples = document.getElementById('btn-generate-examples');
   const btnReviewForgotten = document.getElementById('btn-review-forgotten');
 
   // Review Mode Elements
@@ -245,43 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDeleteSelected.style.cursor = 'not-allowed';
       }
     }
-
-    if (btnGenerateExamples) {
-      const hasVocabSelected = Array.from(checkedBoxes).some(cb => cb.dataset.type === 'vocab');
-      btnGenerateExamples.disabled = !hasVocabSelected;
-      btnGenerateExamples.style.opacity = hasVocabSelected ? '1' : '0.6';
-      btnGenerateExamples.style.cursor = hasVocabSelected ? 'pointer' : 'not-allowed';
-    }
-  }
-
-  if (btnGenerateExamples) {
-    btnGenerateExamples.onclick = () => {
-      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-      const words = Array.from(checkboxes)
-        .filter(cb => cb.dataset.type === 'vocab')
-        .map(cb => cb.value);
-
-      if (words.length === 0) return;
-
-      if (confirm(`Tạo ví dụ cho ${words.length} từ vựng đã chọn?`)) {
-        btnGenerateExamples.innerHTML = "⏳ Đang tạo...";
-        btnGenerateExamples.disabled = true;
-
-        chrome.runtime.sendMessage({
-          action: "forceGenerateExamples",
-          words: words
-        });
-
-        setTimeout(() => {
-          btnGenerateExamples.innerHTML = "✨ Tạo ví dụ (AI)";
-          btnGenerateExamples.disabled = false;
-          alert("Đã gửi yêu cầu! Ví dụ sẽ tự động xuất hiện sau vài giây.");
-          if (selectAllCheckbox) selectAllCheckbox.checked = false;
-          checkboxes.forEach(cb => cb.checked = false);
-          updateDeleteButton();
-        }, 2000);
-      }
-    };
   }
 
   if (btnDeleteSelected) {
@@ -521,20 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       frontEl.innerHTML = `<div style="font-size:40px;">${frontText}</div><div style="font-size:14px;color:#888;margin-top:10px;">(Từ vựng)</div>`;
 
-      let examplesHtml = '';
-      if (item.examples && item.examples.length > 0) {
-        examplesHtml = `<div class="examples-section">`;
-        item.examples.forEach(ex => {
-          examplesHtml += `
-            <div class="example-item">
-              <div class="example-jp">🇯🇵 ${ex.jp}</div>
-              <div class="example-vi">🇻🇳 ${ex.vi}</div>
-            </div>`;
-        });
-        examplesHtml += `</div>`;
-      }
-
-      backEl.innerHTML = backText + examplesHtml;
+      backEl.innerHTML = backText;
 
     } else {
       // Grammar (Only Meaning Mode usually, but handle generic)

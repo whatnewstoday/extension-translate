@@ -7,10 +7,26 @@ async function getApiKey() {
   });
 }
 
-// hàm fetch :tự động thử lại khi có 429
-async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
+// Timeout mặc định (ms) - tăng cho đoạn văn dài
+const DEFAULT_TIMEOUT = 60000; // 60 giây
+const LONG_TEXT_TIMEOUT = 90000; // 90 giây cho văn bản > 500 ký tự
+
+// hàm fetch :tự động thử lại khi có 429, có timeout
+async function fetchWithRetry(url, options, retries = 3, backoff = 1000, timeoutMs = DEFAULT_TIMEOUT) {
+  // Tạo AbortController để hủy request khi timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Thêm signal vào options
+  const fetchOptions = {
+    ...options,
+    signal: controller.signal
+  };
+
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId); // Clear timeout nếu thành công
+
     if (response.status === 429) {
       if (retries > 0) {
         console.warn(`Gặp lỗi 429. Đang chờ ${backoff}ms để thử lại... (Còn ${retries} lần)`);
@@ -19,7 +35,7 @@ async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
         await new Promise(resolve => setTimeout(resolve, backoff));
 
         //đệ quy lại hàm với thời gian chờ tăng gấp đôi
-        return fetchWithRetry(url, options, retries - 1, backoff * 2);
+        return fetchWithRetry(url, options, retries - 1, backoff * 2, timeoutMs);
       } else {
         throw new Error("Đã hết lần thử. Hệ thống đang quá tải. Vui lòng thử lại sau.");
       }
@@ -27,6 +43,13 @@ async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
 
     return response;
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    // Xử lý lỗi timeout
+    if (error.name === 'AbortError') {
+      throw new Error(`Quá thời gian chờ (${timeoutMs / 1000}s). Thử đoạn văn ngắn hơn hoặc thử lại sau.`);
+    }
+
     console.error("Lỗi khi gọi API:", error);
     throw error;
   }
@@ -80,10 +103,12 @@ async function handleGeminiRequest(type, text, tabId) {
 
   // Cấu hình Model
   let modelName = "";
+  let fallbackModelName = null; // Fallback model khi gặp rate limit
   if (type === MENUS.TRANSLATE) {
     modelName = "gemini-2.5-flash-lite"; // Dịch: Nhanh, Rẻ
   } else {
     modelName = "gemini-2.5-flash"; // Phân tích: Ổn định JSON
+    fallbackModelName = "gemini-2.0-flash"; // Fallback cho phân tích tiếng Nhật
   }
 
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -96,36 +121,84 @@ async function handleGeminiRequest(type, text, tabId) {
     Văn bản: "${text}"`;
   }
   else if (type === MENUS.JAPANESE_ANALYSIS) {
-    // Prompt phân tích: Vẫn giữ nguyên yêu cầu JSON
-    prompt = `Bạn là giáo viên tiếng Nhật N1. Hãy phân tích đoạn văn: "${text}"
-    
-    Yêu cầu trả về CHÍNH XÁC định dạng JSON này (không thêm markdown):
-    {
-      "type": "analysis",
-      "meaning": "Dịch nghĩa câu sang tiếng Việt",
-      "vocab": [
-        { "word": "Kanji gốc", "reading": "Hiragana", "mean": "Nghĩa tiếng Việt" }
-      ],
-      "grammar": [
-        { "structure": "Cấu trúc", "explain": "Giải thích ngắn gọn" }
-      ]
-    }
-    Lưu ý:
-    1. Tách riêng từ vựng và ngữ pháp.
-    2. Phần "grammar" BẮT BUỘC phải có.`;
+    // Prompt phân tích: Sử dụng delimiter format (gọn hơn JSON)
+    prompt = `Phân tích tiếng Nhật: "${text}"
+
+Trả về ĐÚNG format sau (không thêm gì khác):
+MEANING: [dịch nghĩa tiếng Việt]
+---VOCAB---
+từ|cách đọc|nghĩa
+---GRAMMAR---
+cấu trúc|giải thích
+
+Luôn có vocab và grammar. Mỗi mục 1 dòng.`;
   }
 
   try {
-    const response = await fetchWithRetry(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+    let response;
+    let data;
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "API Error");
+    // Xác định timeout dựa trên độ dài văn bản
+    const timeoutMs = text.length > 500 ? LONG_TEXT_TIMEOUT : DEFAULT_TIMEOUT;
+    console.log(`Văn bản dài ${text.length} ký tự, timeout: ${timeoutMs / 1000}s`);
+
+    try {
+      // Thử với model chính trước
+      response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }, 3, 1000, timeoutMs);
+
+      data = await response.json();
+
+      // Kiểm tra nếu là 429 và có fallback model
+      if (!response.ok && response.status === 429 && fallbackModelName) {
+        console.log(`Model chính gặp rate limit (429), chuyển sang fallback: ${fallbackModelName}`);
+        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModelName}:generateContent?key=${apiKey}`;
+
+        response = await fetchWithRetry(fallbackUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        }, 3, 1000, timeoutMs);
+
+        data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || "API Error");
+      } else if (!response.ok) {
+        // Nếu không phải 429 hoặc không có fallback, throw error
+        throw new Error(data.error?.message || "API Error");
+      }
+    } catch (primaryError) {
+      // Nếu fetchWithRetry throw error (đã hết retries với 429) và có fallback, thử fallback
+      if (fallbackModelName && (primaryError.message.includes("429") || primaryError.message.includes("quá tải"))) {
+        console.log(`Model chính đã hết retries, chuyển sang fallback: ${fallbackModelName}`);
+        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fallbackModelName}:generateContent?key=${apiKey}`;
+
+        try {
+          response = await fetchWithRetry(fallbackUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }]
+            })
+          }, 3, 1000, timeoutMs);
+
+          data = await response.json();
+          if (!response.ok) throw new Error(data.error?.message || "API Error");
+        } catch (fallbackError) {
+          // Nếu fallback cũng lỗi, throw lỗi gốc
+          throw primaryError;
+        }
+      } else {
+        // Nếu không phải 429 hoặc không có fallback, throw lỗi gốc
+        throw primaryError;
+      }
+    }
 
     let rawText = data.candidates[0].content.parts[0].text;
     let finalData = null;
@@ -139,21 +212,53 @@ async function handleGeminiRequest(type, text, tabId) {
       };
     }
     else {
-      // --- LOGIC CHO PHÂN TÍCH (JSON) ---
-      // Trích xuất JSON từ dấu { đến dấu }
-      const startIndex = rawText.indexOf('{');
-      const endIndex = rawText.lastIndexOf('}');
+      // --- LOGIC CHO PHÂN TÍCH (DELIMITER FORMAT) ---
+      try {
+        // Tách các phần bằng delimiter
+        const meaningMatch = rawText.match(/MEANING:\s*(.+?)(?=---VOCAB---|$)/s);
+        const vocabMatch = rawText.match(/---VOCAB---\s*([\s\S]*?)(?=---GRAMMAR---|$)/);
+        const grammarMatch = rawText.match(/---GRAMMAR---\s*([\s\S]*?)$/);
 
-      if (startIndex !== -1 && endIndex !== -1) {
-        const jsonString = rawText.substring(startIndex, endIndex + 1);
-        try {
-          finalData = JSON.parse(jsonString);
-        } catch (e) {
-          console.error("Lỗi Parse JSON:", e);
-          throw new Error("Lỗi định dạng JSON từ AI. Hãy thử lại.");
+        const meaning = meaningMatch ? meaningMatch[1].trim() : "";
+
+        // Parse từ vựng: mỗi dòng có format "từ|cách đọc|nghĩa"
+        const vocab = [];
+        if (vocabMatch && vocabMatch[1]) {
+          const vocabLines = vocabMatch[1].trim().split('\n').filter(line => line.includes('|'));
+          for (const line of vocabLines) {
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length >= 3) {
+              vocab.push({ word: parts[0], reading: parts[1], mean: parts[2] });
+            } else if (parts.length === 2) {
+              vocab.push({ word: parts[0], reading: "", mean: parts[1] });
+            }
+          }
         }
-      } else {
-        throw new Error("AI không trả về đúng định dạng JSON.");
+
+        // Parse ngữ pháp: mỗi dòng có format "cấu trúc|giải thích"
+        const grammar = [];
+        if (grammarMatch && grammarMatch[1]) {
+          const grammarLines = grammarMatch[1].trim().split('\n').filter(line => line.includes('|'));
+          for (const line of grammarLines) {
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length >= 2) {
+              grammar.push({ structure: parts[0], explain: parts[1] });
+            }
+          }
+        }
+
+        // Tạo object giống format cũ để frontend không cần đổi
+        finalData = {
+          type: "analysis",
+          meaning: meaning,
+          vocab: vocab,
+          grammar: grammar
+        };
+
+        console.log("Parsed delimiter data:", finalData);
+      } catch (e) {
+        console.error("Lỗi Parse delimiter:", e, "Raw:", rawText);
+        throw new Error("Lỗi xử lý phản hồi từ AI. Hãy thử lại.");
       }
     }
 
@@ -266,123 +371,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     handleGeminiRequest(MENUS.JAPANESE_ANALYSIS, request.text, request.tabId);
   }
 
-  // [NEW] Thêm vào hàng đợi tạo ví dụ
-  if (request.action === "addToVocabQueue") {
-    addToQueue(request.word);
-  }
-
-  // [NEW] Ép buộc tạo ví dụ ngay (Manual Trigger)
-  if (request.action === "forceGenerateExamples") {
-    forceGenerate(request.words);
-  }
 });
-
-// ==========================================
-// 6. AUTO-GENERATE EXAMPLES LOGIC (NEW)
-// ==========================================
-let vocabQueue = [];
-let queueTimer = null;
-
-function addToQueue(word) {
-  // Tránh trùng lặp
-  if (!vocabQueue.includes(word)) {
-    vocabQueue.push(word);
-    console.log(`Đã thêm "${word}" vào hàng đợi. Tổng: ${vocabQueue.length}`);
-  }
-
-  // Nếu đủ 10 từ -> Xử lý ngay
-  if (vocabQueue.length >= 10) {
-    processQueue();
-  } else {
-    // Nếu chưa đủ, reset timer chờ 5 giây mới xử lý (Debounce)
-    if (queueTimer) clearTimeout(queueTimer);
-    queueTimer = setTimeout(processQueue, 5000);
-  }
-}
-
-function forceGenerate(words) {
-  if (!words || words.length === 0) return;
-  console.log("Force generating examples for:", words);
-  generateExamples(words);
-}
-
-async function processQueue() {
-  if (queueTimer) clearTimeout(queueTimer);
-  if (vocabQueue.length === 0) return;
-
-  const batch = [...vocabQueue];
-  vocabQueue = []; // Clear queue
-  console.log("Đang xử lý batch:", batch);
-
-  await generateExamples(batch);
-}
-
-async function generateExamples(words) {
-  const apiKey = await getApiKey();
-  if (!apiKey) return;
-
-  const modelName = "gemini-2.5-flash-preview-09-2025"; // Model theo yêu cầu
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
-  const prompt = `
-    Hãy tạo 3 câu ví dụ song ngữ (Nhật - Việt) cho mỗi từ vựng sau đây: ${words.join(", ")}.
-    
-    Yêu cầu trả về JSON chính xác theo định dạng sau (không thêm markdown):
-    [
-      {
-        "word": "Từ vựng 1",
-        "examples": [
-          { "jp": "Câu tiếng Nhật 1", "vi": "Nghĩa tiếng Việt 1" },
-          { "jp": "Câu tiếng Nhật 2", "vi": "Nghĩa tiếng Việt 2" },
-          { "jp": "Câu tiếng Nhật 3", "vi": "Nghĩa tiếng Việt 3" }
-        ]
-      }
-    ]
-  `;
-
-  try {
-    const response = await fetchWithRetry(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "API Error");
-
-    const rawText = data.candidates[0].content.parts[0].text;
-    const jsonString = rawText.substring(rawText.indexOf('['), rawText.lastIndexOf(']') + 1);
-    const results = JSON.parse(jsonString);
-
-    // Lưu kết quả vào Storage
-    updateVocabWithExamples(results);
-
-  } catch (error) {
-    console.error("Lỗi tạo ví dụ:", error);
-  }
-}
-
-function updateVocabWithExamples(results) {
-  chrome.storage.local.get(['savedVocab'], (data) => {
-    let vocabList = data.savedVocab || [];
-    let hasChanges = false;
-
-    results.forEach(res => {
-      const itemIndex = vocabList.findIndex(v => v.word === res.word);
-      if (itemIndex !== -1) {
-        vocabList[itemIndex].examples = res.examples;
-        hasChanges = true;
-      }
-    });
-
-    if (hasChanges) {
-      chrome.storage.local.set({ savedVocab: vocabList }, () => {
-        console.log("Đã cập nhật ví dụ cho", results.length, "từ.");
-        // Gửi thông báo để Manager reload nếu đang mở
-        chrome.runtime.sendMessage({ action: "vocabUpdated" }).catch(() => { });
-      });
-    }
-  });
-}
