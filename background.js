@@ -131,7 +131,7 @@ từ|cách đọc|nghĩa
 ---GRAMMAR---
 cấu trúc|giải thích
 
-Luôn có vocab và grammar. Mỗi mục 1 dòng.`;
+Luôn có vocab và grammar. Mỗi mục 1 dòng. Cách đọc dùng hiragana`;
   }
 
   try {
