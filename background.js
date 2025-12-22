@@ -8,8 +8,8 @@ async function getApiKey() {
 }
 
 // Timeout mặc định (ms) - tăng cho đoạn văn dài
-const DEFAULT_TIMEOUT = 60000; // 60 giây
-const LONG_TEXT_TIMEOUT = 90000; // 90 giây cho văn bản > 500 ký tự
+const DEFAULT_TIMEOUT = 90000; // 90 giây
+const LONG_TEXT_TIMEOUT = 120000; // 120 giây cho văn bản > 500 ký tự
 
 // hàm fetch :tự động thử lại khi có 429, có timeout
 async function fetchWithRetry(url, options, retries = 3, backoff = 1000, timeoutMs = DEFAULT_TIMEOUT) {
