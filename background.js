@@ -1,10 +1,40 @@
-// Lấy API key từ storage
-async function getApiKey() {
+// Lấy API keys từ storage (hỗ trợ nhiều keys)
+async function getApiKeys() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['geminiApiKey'], (result) => {
-      resolve(result.geminiApiKey || '');
+    chrome.storage.local.get(['geminiApiKeys', 'geminiApiKey'], (result) => {
+      // Ưu tiên dùng geminiApiKeys (array), nếu không có thì convert từ geminiApiKey cũ
+      let keys = result.geminiApiKeys || [];
+
+      // Migration: Nếu chỉ có key cũ, convert sang array
+      if (keys.length === 0 && result.geminiApiKey) {
+        keys = [result.geminiApiKey];
+      }
+
+      resolve(keys);
     });
   });
+}
+
+// Lấy API key hiện tại (cho backward compatibility)
+async function getApiKey() {
+  const keys = await getApiKeys();
+  return keys[0] || '';
+}
+
+// Lấy API key tiếp theo khi gặp rate limit
+let currentKeyIndex = 0;
+async function getNextApiKey() {
+  const keys = await getApiKeys();
+  if (keys.length === 0) return null;
+
+  currentKeyIndex = (currentKeyIndex + 1) % keys.length;
+  console.log(`Switching to API key #${currentKeyIndex + 1}/${keys.length}`);
+  return keys[currentKeyIndex];
+}
+
+// Reset về key đầu tiên
+function resetKeyIndex() {
+  currentKeyIndex = 0;
 }
 
 // Timeout mặc định (ms) - tăng cho đoạn văn dài
@@ -90,16 +120,55 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // 3. Hàm xử lý logic gọi API
 async function handleGeminiRequest(type, text, tabId) {
-  // Lấy API key
-  const apiKey = await getApiKey();
+  // Lấy tất cả API keys
+  const apiKeys = await getApiKeys();
 
-  if (!apiKey) {
+  if (apiKeys.length === 0) {
     chrome.tabs.sendMessage(tabId, {
       action: "displayError",
-      message: "Chưa thiết lập API key. Vui lòng vào Options để cài đặt."
+      message: "Chưa thiết lập API key. Vui lòng vào Manager để cài đặt."
     }).catch(() => { });
     return;
   }
+
+  // Reset về key đầu tiên khi bắt đầu request mới
+  resetKeyIndex();
+
+  // Thử từng API key cho đến khi thành công
+  let lastError = null;
+  for (let keyIndex = 0; keyIndex < apiKeys.length; keyIndex++) {
+    const apiKey = apiKeys[keyIndex];
+    console.log(`Trying API key ${keyIndex + 1}/${apiKeys.length}`);
+
+    try {
+      await processWithApiKey(type, text, tabId, apiKey);
+      return; // Thành công, thoát
+    } catch (error) {
+      lastError = error;
+
+      // Nếu là lỗi 429 và còn keys khác, thử key tiếp theo
+      if (error.message.includes("429") || error.message.includes("quá tải")) {
+        console.warn(`API key ${keyIndex + 1} gặp rate limit, thử key tiếp theo...`);
+        continue;
+      } else {
+        // Nếu không phải 429, không thử key khác nữa
+        break;
+      }
+    }
+  }
+
+  // Tất cả keys đều fail
+  console.error("Tất cả API keys đều thất bại:", lastError);
+  if (tabId) {
+    chrome.tabs.sendMessage(tabId, {
+      action: "displayError",
+      message: lastError?.message || "Lỗi không xác định"
+    }).catch(e => console.log("Không thể gửi báo lỗi tới tab:", e));
+  }
+}
+
+// Helper function: Xử lý request với một API key cụ thể
+async function processWithApiKey(type, text, tabId, apiKey) {
 
   // Cấu hình Model
   let modelName = "";
@@ -273,12 +342,8 @@ Luôn có vocab và grammar. Mỗi mục 1 dòng. Cách đọc dùng hiragana`;
 
   } catch (error) {
     console.error("Lỗi xử lý Gemini:", error);
-    if (tabId) {
-      chrome.tabs.sendMessage(tabId, {
-        action: "displayError",
-        message: error.message
-      }).catch(e => console.log("Không thể gửi báo lỗi tới tab:", e));
-    }
+    // Throw error để handleGeminiRequest có thể thử API key khác
+    throw error;
   }
 }
 

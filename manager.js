@@ -603,31 +603,75 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderSettings() {
-    chrome.storage.local.get(['geminiApiKey'], (result) => {
-      const currentKey = result.geminiApiKey || '';
-      const maskedKey = currentKey ? currentKey.substring(0, 10) + '...' + currentKey.substring(currentKey.length - 4) : 'Chưa thiết lập';
+    chrome.storage.local.get(['geminiApiKeys', 'geminiApiKey'], (result) => {
+      // Migration: convert old single key to array
+      let keys = result.geminiApiKeys || [];
+      if (keys.length === 0 && result.geminiApiKey) {
+        keys = [result.geminiApiKey];
+      }
+
+      const keysHTML = keys.length > 0
+        ? keys.map((key, index) => {
+          const maskedKey = key.substring(0, 10) + '...' + key.substring(key.length - 4);
+          return `
+              <div class="api-key-item" style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f5f5f5; margin:5px 0; border-radius:5px;">
+                <code>${index + 1}. ${maskedKey}</code>
+                <button class="btn-delete-key" data-index="${index}" style="background:#f44336; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Xóa</button>
+              </div>
+            `;
+        }).join('')
+        : '<p style="color:#999;">Chưa có API key nào.</p>';
 
       settingsView.innerHTML = `
             <div class="settings-container">
-                <h2>⚙️ Cài đặt API</h2>
+                <h2>⚙️ Cài đặt API Keys</h2>
                 <div class="settings-card">
-                    <p>Key hiện tại: <code>${maskedKey}</code></p>
+                    <h3>Danh sách API Keys (${keys.length})</h3>
+                    <div id="api-keys-list">${keysHTML}</div>
+                    
+                    <hr style="margin:20px 0;">
+                    
+                    <h3>Thêm API Key mới</h3>
                     <input type="password" id="api-key-input" placeholder="Nhập API Key mới..." style="width:100%; padding:10px; margin:10px 0;">
-                    <button id="save-api-btn" class="btn-success">Lưu Key</button>
+                    <button id="add-api-btn" class="btn-success">➕ Thêm Key</button>
                     <div id="api-status" style="margin-top:10px;"></div>
+                    
+                    <p style="margin-top:20px; font-size:12px; color:#666;">
+                      💡 <strong>Mẹo:</strong> Thêm nhiều API keys từ các Google Cloud projects khác nhau để tránh rate limit.
+                    </p>
                 </div>
             </div>
         `;
 
-      document.getElementById('save-api-btn').onclick = () => {
+      // Add key button
+      document.getElementById('add-api-btn').onclick = () => {
         const val = document.getElementById('api-key-input').value.trim();
         if (val) {
-          chrome.storage.local.set({ geminiApiKey: val }, () => {
-            alert("Đã lưu API Key!");
+          if (keys.includes(val)) {
+            alert("Key này đã tồn tại!");
+            return;
+          }
+
+          keys.push(val);
+          chrome.storage.local.set({ geminiApiKeys: keys }, () => {
+            alert("Đã thêm API Key!");
             renderSettings();
           });
         }
       };
+
+      // Delete key buttons
+      document.querySelectorAll('.btn-delete-key').forEach(btn => {
+        btn.onclick = () => {
+          const index = parseInt(btn.dataset.index);
+          if (confirm(`Xóa API key #${index + 1}?`)) {
+            keys.splice(index, 1);
+            chrome.storage.local.set({ geminiApiKeys: keys }, () => {
+              renderSettings();
+            });
+          }
+        };
+      });
     });
   }
 
