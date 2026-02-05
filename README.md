@@ -68,12 +68,6 @@ translate_extension/
 
 ---
 
-## Bảo mật
-
-API key được lưu local trong browser, không gửi đi đâu ngoài Gemini API.
-
----
-
 ## License
 
 MIT
