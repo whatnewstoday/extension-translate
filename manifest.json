@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Gemini Translator",
-  "version": "1.0",
-  "description": "Dịch văn bản bôi đen",
+  "version": "2.0",
+  "description": "Dịch văn bản bôi đen và phân tích tiếng Nhật với Gemini AI",
   "permissions": [
     "activeTab",
     "contextMenus",
@@ -16,7 +16,7 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/bundle.js"
   },
   "content_scripts": [
     {
@@ -24,10 +24,13 @@
         "<all_urls>"
       ],
       "js": [
-        "styles.js",
-        "ui-renderer.js",
-        "history-manager.js",
-        "content.js"
+        "src/shared/constants.js",
+        "src/shared/utils.js",
+        "src/shared/storage-service.js",
+        "src/content/styles.js",
+        "src/content/popup-ui.js",
+        "src/content/history.js",
+        "src/content/index.js"
       ]
     }
   ],

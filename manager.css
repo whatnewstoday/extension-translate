@@ -1037,3 +1037,49 @@ input[type="checkbox"] {
     cursor: pointer;
     margin-left: 5px;
 }
+
+/* ===== DATE EXPORT BAR ===== */
+.date-export-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #4CAF50;
+}
+
+.date-export-bar label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.date-export-bar input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    background: white;
+    min-width: 150px;
+}
+
+.date-export-bar input[type="date"]:hover {
+    border-color: #4CAF50;
+}
+
+.date-export-bar input[type="date"]:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.date-export-info {
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+}

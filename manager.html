@@ -40,6 +40,14 @@
       </div>
     </div>
 
+    <!-- Date Picker Export Section -->
+    <div id="date-export-bar" class="date-export-bar">
+      <label for="date-picker">📅 Chọn ngày:</label>
+      <input type="date" id="date-picker">
+      <button id="btn-export-date" class="btn-success">📥 Tải ngày này</button>
+      <span id="date-export-info" class="date-export-info"></span>
+    </div>
+
     <div id="main-view">
       <div class="column vocab-column">
         <div class="column-header">
@@ -118,7 +126,17 @@
     </div>
   </div>
 
-  <script src="manager.js"></script>
+  <!-- Shared Dependencies -->
+  <script src="src/shared/constants.js"></script>
+  <script src="src/shared/utils.js"></script>
+  <script src="src/shared/storage-service.js"></script>
+  <script src="src/shared/toast.js"></script>
+
+  <!-- Manager Modules -->
+  <script src="src/manager/data-service.js"></script>
+  <script src="src/manager/export-service.js"></script>
+  <script src="src/manager/review-mode.js"></script>
+  <script src="src/manager/index.js"></script>
 </body>
 
 </html>

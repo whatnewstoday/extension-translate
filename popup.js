@@ -1,3 +1,16 @@
+/**
+ * FILE: popup.js
+ * MỤC ĐÍCH: Xử lý popup khi click icon extension.
+ * CHỨC NĂNG:
+ * 1. Nút mở Manager (Sổ tay)
+ * 2. Nút dịch văn bản đã bôi đen
+ * 3. Nút phân tích văn bản đã bôi đen
+ * 
+ * DEPENDENCIES: (load trong popup.html)
+ * - src/shared/constants.js
+ * - src/shared/toast.js
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
   const btnManager = document.getElementById('btn-open-manager');
   const btnAnalyze = document.getElementById('btn-analyze-text');
@@ -24,12 +37,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Hàm xử lý chung cho cả dịch và phân tích
+  /**
+   * Xử lý action dịch hoặc phân tích
+   * @param {'translate'|'analyze'} actionType 
+   */
   async function handleTextAction(actionType) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (!tab?.id) {
-      alert('Không thể lấy thông tin tab. Vui lòng thử lại.');
+      showToast('Không thể lấy thông tin tab. Vui lòng thử lại.', 'error');
       return;
     }
 
@@ -42,21 +58,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const selectedText = results[0]?.result;
 
       if (!selectedText || selectedText.trim() === '') {
-        alert('Vui lòng bôi đen văn bản trước!');
+        showToast('Vui lòng bôi đen văn bản trước!', 'warning');
         return;
       }
 
       // Gửi message hiển thị loading
       chrome.tabs.sendMessage(tab.id, {
-        action: "showLoading",
+        action: 'showLoading',
         originalText: selectedText
       }).catch(() => {
-        alert('Lỗi: Hãy reload (F5) trang web rồi thử lại!');
+        showToast('Lỗi: Hãy reload (F5) trang web rồi thử lại!', 'error');
       });
 
-      // Gọi API tương ứng
+      // Gửi request đến background
       chrome.runtime.sendMessage({
-        action: actionType === 'translate' ? "translateText" : "analyzeText",
+        action: actionType === 'translate' ? 'translateText' : 'analyzeText',
         text: selectedText,
         tabId: tab.id
       });
@@ -64,8 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
       window.close();
 
     } catch (error) {
-      console.error("Lỗi:", error);
-      alert('Không thể thực hiện. Hãy reload (F5) trang web và thử lại!');
+      console.error('Error:', error);
+      showToast('Không thể thực hiện. Hãy reload (F5) trang web và thử lại!', 'error');
     }
   }
 });
